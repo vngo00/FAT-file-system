@@ -20,10 +20,10 @@
 #define RESERVED_BLOCKS 154 // assuming FAT will have 19531 blocks, 154 will be reserved for VCB and FAT itself
 
 int init_FAT(uint64_t num_blocks, uint64_t block_size);
-int read_FAT_from_disk();
-uint32_t allocate_blocks(int blocks_to_allocate);
-uint32_t release_blocks(int block);
-void allocate_additional_blocks(uint32_t first_block, int blocks_to_allocate);
+int read_FAT_from_disk(void);
+int allocate_blocks(void);
+uint32_t release_blocks(int start_block);
+int allocate_additional_block(uint32_t start_block);
 uint32_t get_next_block(int current_block);
 
 
