@@ -10,7 +10,9 @@
 *
 * File: vcb_.h
 *
-* Description: VCB handling header file.
+* Description: VCB header file containing volume control block 
+* structure. Also contains signatures of functions for
+* handling the VCB.
 **************************************************************/
 #ifndef _VCB__H
 #define _VCB__H
