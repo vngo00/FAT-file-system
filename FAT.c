@@ -21,6 +21,21 @@ int blocks_per_fat;
 
 
 int init_FAT(uint64_t num_blocks, uint64_t block_size) {
+	//fat_array = malloc(num_block * block_size); // 19531 * 4 = 78124 bytes
+	fat_array = (int *) mallloc(num_blocks * sizeof(int));
+
+	// set reserved blocks to occupied
+	// -1 being occupied for now
+	int i;
+	for ( i =0; i < RESERVED_BLOCKS; i++) {
+		fat_array[i] = -1;
+	}
+
+	// 0 being free
+	for( ; i < num_blocks ; i++) {
+		fat_array[i] = 0;
+	}
 	
+	return 0 
 
 }
