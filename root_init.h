@@ -23,7 +23,7 @@
 typedef struct Directory_Entry {
 	char dir_name[NAME_MAX_LENGTH];
 	uint8_t dir_attr;
-	uint16_t dir_fst_clus_start
+	uint16_t dir_first_cluster;
 	uint32_t dir_file_size;	
 } Directory_Entry;
 
