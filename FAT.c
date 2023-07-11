@@ -85,7 +85,7 @@ int allocate_blocks(int blocks) {
 		}
 	}
 	fat_array[curr] = EOF;
-
+	total_free_blocks -= blocks;
 	LBAwrite( (void *) fat_array, vcb->FAT_size_32, vcb->FAT_start);
 	return head;
 }
@@ -110,6 +110,7 @@ int allocate_additional_bocks(uint32_t start_block, uint32_t blocks) {
 	}
 
 	fat_array[prev] = new_block;
+	total_free_blocks -= blocks;
 	LBAwrite( (void *) fat_array, vcb->FAT_size_32, vcb->FAT_start);
 
 
@@ -128,9 +129,11 @@ uint32_t release_blocks(int start_blocks) {
 		fat_array[prev] = 0;
 		prev = curr;
 		curr = fat_array[prev];
+		total_free_blocks++;
 	}
 	
 	fat_array[prev] = o;
+	total_free_blocks++;
 
 	LBAwrite( (void *) fat_array, vcb->FAT_size_32, vcb->FAT_start);
 	return 0 //not sure what to return here
