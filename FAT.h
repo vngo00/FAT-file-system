@@ -35,7 +35,7 @@ int allocate_blocks(int blocks);
 uint32_t release_blocks(int start_block);
 
 //function to allocate more blocks if needed
-int allocate_additional_blocks(uint32_t start_block, uint32_t blocks);
+void allocate_additional_blocks(uint32_t start_block, uint32_t blocks);
 
 //function to get next block from fat
 uint32_t get_next_block(int current_block);
