@@ -23,7 +23,7 @@ int init_FAT(uint64_t num_blocks, uint64_t block_size);
 int read_FAT_from_disk(void);
 int allocate_blocks(int blocks);
 uint32_t release_blocks(int start_block);
-int allocate_additional_block(uint32_t start_block);
+int allocate_additional_blocks(uint32_t start_block, uint32_t blocks);
 uint32_t get_next_block(int current_block);
 
 
