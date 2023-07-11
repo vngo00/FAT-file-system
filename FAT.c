@@ -15,16 +15,18 @@
 
 
 #include "FAT.h"
+#include "vcb_.h"
 
 int *fat_array; // cached FAT in mem
 int blocks_per_fat;
 int total_blocks;
-
+int total_free_blocks;
 
 int init_FAT(uint64_t num_blocks, uint64_t block_size) {
-	//fat_array = malloc(num_block * block_size); // 19531 * 4 = 78124 bytes
-	fat_array = (int *) mallloc(num_blocks * sizeof(int));
+	fat_array =(int *) malloc(num_block * block_size); // 19531 * 4 = 78124 bytes
+	//fat_array = (int *) mallloc(num_blocks * sizeof(int));
 	total_blocks = num_blocks;
+	total_free_blocks = total_blocks - RESERVED_BLOCKS;
 	// set reserved blocks to occupied
 	// -1 being occupied for now
 	int i;
@@ -40,17 +42,54 @@ int init_FAT(uint64_t num_blocks, uint64_t block_size) {
 	return 0 
 
 }
+/*
+ * volume already initialized load FAT from disk
+ */
+int read_FAT_from_disk(uin64_t num_blocks, uint64_t block_size) {
+	fat_array = (int *) malloc(num_blocks * block_size);
+	total_blocks = num_blocks;
+	
+	// load FAT from disk
+	LBAread( (void *) fat_array, vcb->FAT_size_32, vcb->FAT_start);
+
+	// check the total number of free blocks
+	total_free_blocks = 0 ;
+	int i = RESERVED_BLOCKS;
+	for( ; i < vcb->total_blocks_32; i++) {
+		if (fat_array[i] == 0)
+			total_free_blocks++;
+	}
+
+	return 0;
+}
 
 /*
  * allocate one free block to caller
  */
-int allocate_blocks(void) {
-	int i;
-	for (i = RESERVED_BLOCKS; i < total_blocks; i++) {
-		if (fat_array[i] == 0) return i;
+int allocate_blocks(int blocks) {
+	if (blocks > total_free_blocks) return -1; // not enoug free blocks
+	
+	int head =-1;
+	int curr = -1;
+	for (int i = RESERVED_BLOCKS; i < total_blocks; i++) {
+		if ( fat_array[i] == 0) {
+			if ( head == -1) {
+				head = i;
+				curr = head;
+			}
+			else {
+				fat_array[curr] = i;
+				curr = i;
+			}
+			block--;
+		}
 	}
-	return -1 // no free block avaiable
+	fat_array[curr] = EOF;
+
+	return head;
 }
+
+
 
 
 /*
@@ -94,4 +133,9 @@ uint32_t release_blocks(int start_blocks) {
 
 
 	return 0 //not sure what to return here
+}
+
+uint32_t get_next_block(int current_block) {
+	if (current_block >= total_blocks || current_block < RESERVED_BLOCKS) return -1;
+	return fat_array[current_block];
 }
