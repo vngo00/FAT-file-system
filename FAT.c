@@ -17,50 +17,42 @@
 #include "FAT.h"
 #include "vcb_.h"
 
-int *fat_array; // cached FAT in mem
-int blocks_per_fat;
+int * fat_array = NULL;
+int blocks_per_fat = 153;
 int total_blocks;
-int total_free_blocks;
+int total_free_blocks;			
 
-int init_FAT(uint64_t num_blocks, uint64_t block_size) {
-	fat_array =(int *) malloc(num_block * block_size); // 19531 * 4 = 78124 bytes
+int fat_init(uint64_t num_blocks, uint64_t block_size) {
+	int bytes_per_fat = number_of_blocks * sizeof(int);
+	blocks_per_fat = (bytes_per_fat + block_size - 1 ) / block_size; // round up
+        fat_array = malloc(blocks_per_fat * block_size);
+
+
+	fat_array[0] = -1; // vcb occupies block 0
+    
+
 	//fat_array = (int *) mallloc(num_blocks * sizeof(int));
-	total_blocks = num_blocks;
-	total_free_blocks = total_blocks - RESERVED_BLOCKS;
 	// set reserved blocks to occupied
 	// -1 being occupied for now
-	int i;
-	for ( i =0; i < RESERVED_BLOCKS; i++) {
-		fat_array[i] = -1;
-	}
 
-	// 0 being free
-	for( ; i < num_blocks ; i++) {
-		fat_array[i] = 0;
+
+	for (int i = 1; i <= blocks_per_fat; i++) {
+		if(i == blocks_per_fat){
+			fat_array[i] = -1; // -1 denotes end of the chain 
+	        } else {
+		        fat_array[i] = i + 1; // contiguous allocation for the FAT
+		}
 	}
-	
-	return 0 
+	    LBAwrite(fat_array, blocks_per_fat, FAT_BLOCK_START_LOCATION);
+	return 1; 
 
 }
 /*
  * volume already initialized load FAT from disk
  */
-int read_FAT_from_disk(uin64_t num_blocks, uint64_t block_size) {
-	fat_array = (int *) malloc(num_blocks * block_size);
-	total_blocks = num_blocks;
-	
-	// load FAT from disk
-	LBAread( (void *) fat_array, vcb->FAT_size_32, vcb->FAT_start);
-
-	// check the total number of free blocks
-	total_free_blocks = 0 ;
-	int i = RESERVED_BLOCKS;
-	for( ; i < vcb->total_blocks_32; i++) {
-		if (fat_array[i] == 0)
-			total_free_blocks++;
-	}
-
-	return 0;
+int fat_read_from_disk(uin64_t num_blocks, uint64_t block_size) {
+    fat_array = malloc(vcb->FAT_size_32 * vcb->bytes_per_block);
+    return LBAread(fat_array, vcb->FAT_size_32, FAT_BLOCK_START_LOCATION);
 }
 
 /*
