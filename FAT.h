@@ -19,11 +19,25 @@
 #define FAT_BLOCK_START 1
 #define RESERVED_BLOCKS 154 // assuming FAT will have 19531 blocks, 154 will be reserved for VCB and FAT itself
 
-int init_FAT(uint64_t num_blocks, uint64_t block_size);
-int read_FAT_from_disk(void);
-int allocate_blocks(void);
+extern int * fat_array; // cached FAT in mem
+extern int blocks_per_fat;
+
+//Function to initiate the fat
+int fat_init(uint64_t number_of_blocks, uint64_t block_size);
+
+//function to load the fat from disk
+int fat_read_from_disk();
+
+//functino to allocate blocks needed for fat
+int allocate_blocks(int blocks);
+
+//functin to free blocks from fat
 uint32_t release_blocks(int start_block);
-int allocate_additional_block(uint32_t start_block);
+
+//function to allocate more blocks if needed
+int allocate_additional_blocks(uint32_t start_block, uint32_t blocks);
+
+//function to get next block from fat
 uint32_t get_next_block(int current_block);
 
 

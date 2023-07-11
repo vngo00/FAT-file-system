@@ -15,49 +15,81 @@
 
 
 #include "FAT.h"
+#include "vcb_.h"
 
-int *fat_array; // cached FAT in mem
-int blocks_per_fat;
+int * fat_array = NULL;
+int blocks_per_fat = 153;
 int total_blocks;
+int total_free_blocks;			
+
+int fat_init(uint64_t num_blocks, uint64_t block_size) {
+	int bytes_per_fat = number_of_blocks * sizeof(int);
+	blocks_per_fat = (bytes_per_fat + block_size - 1 ) / block_size; // round up
+        fat_array = malloc(blocks_per_fat * block_size);
 
 
-int init_FAT(uint64_t num_blocks, uint64_t block_size) {
-	//fat_array = malloc(num_block * block_size); // 19531 * 4 = 78124 bytes
-	fat_array = (int *) mallloc(num_blocks * sizeof(int));
-	total_blocks = num_blocks;
+	fat_array[0] = -1; // vcb occupies block 0
+    
+
+	//fat_array = (int *) mallloc(num_blocks * sizeof(int));
 	// set reserved blocks to occupied
 	// -1 being occupied for now
-	int i;
-	for ( i =0; i < RESERVED_BLOCKS; i++) {
-		fat_array[i] = -1;
-	}
 
-	// 0 being free
-	for( ; i < num_blocks ; i++) {
-		fat_array[i] = 0;
-	}
-	
-	return 0 
 
+	for (int i = 1; i <= blocks_per_fat; i++) {
+		if(i == blocks_per_fat){
+			fat_array[i] = -1; // -1 denotes end of the chain 
+	        } else {
+		        fat_array[i] = i + 1; // contiguous allocation for the FAT
+		}
+	}
+	    LBAwrite(fat_array, blocks_per_fat, FAT_BLOCK_START_LOCATION);
+	return 1; 
+
+}
+/*
+ * volume already initialized load FAT from disk
+ */
+int fat_read_from_disk(uin64_t num_blocks, uint64_t block_size) {
+    fat_array = malloc(vcb->FAT_size_32 * vcb->bytes_per_block);
+    return LBAread(fat_array, vcb->FAT_size_32, FAT_BLOCK_START_LOCATION);
 }
 
 /*
  * allocate one free block to caller
  */
-int allocate_blocks(void) {
-	int i;
-	for (i = RESERVED_BLOCKS; i < total_blocks; i++) {
-		if (fat_array[i] == 0) return i;
+int allocate_blocks(int blocks) {
+	if (blocks > total_free_blocks) return -1; // not enoug free blocks
+	
+	int head =-1;
+	int curr = -1;
+	for (int i = RESERVED_BLOCKS; i < total_blocks; i++) {
+		if ( fat_array[i] == 0) {
+			if ( head == -1) {
+				head = i;
+				curr = head;
+			}
+			else {
+				fat_array[curr] = i;
+				curr = i;
+			}
+			block--;
+		}
 	}
-	return -1 // no free block avaiable
+	fat_array[curr] = EOF;
+	total_free_blocks -= blocks;
+	LBAwrite( (void *) fat_array, vcb->FAT_size_32, vcb->FAT_start);
+	return head;
 }
+
+
 
 
 /*
  * extend the size of a file by one block
  */
-int allocate_additional_bock(uint32_t start_block) {
-	int new_block = allocate_blocks();
+int allocate_additional_bocks(uint32_t start_block, uint32_t blocks) {
+	int new_block = allocate_blocks(blocks);
 	if (new_block == -1) {
 		return -1 // no more free block available
 	}
@@ -70,7 +102,8 @@ int allocate_additional_bock(uint32_t start_block) {
 	}
 
 	fat_array[prev] = new_block;
-	fat_array[new_block] = EOF;
+	total_free_blocks -= blocks;
+	LBAwrite( (void *) fat_array, vcb->FAT_size_32, vcb->FAT_start);
 
 
 	return 0; // 0 being successful;
@@ -88,10 +121,17 @@ uint32_t release_blocks(int start_blocks) {
 		fat_array[prev] = 0;
 		prev = curr;
 		curr = fat_array[prev];
+		total_free_blocks++;
 	}
 	
 	fat_array[prev] = o;
+	total_free_blocks++;
 
-
+	LBAwrite( (void *) fat_array, vcb->FAT_size_32, vcb->FAT_start);
 	return 0 //not sure what to return here
+}
+
+uint32_t get_next_block(int current_block) {
+	if (current_block >= total_blocks || current_block < RESERVED_BLOCKS) return -1;
+	return fat_array[current_block];
 }
