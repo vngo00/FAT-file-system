@@ -10,9 +10,7 @@
 *
 * File: vcb_.h
 *
-* Description: VCB header file containing volume control block 
-* structure. Also contains signatures of functions for
-* handling the VCB.
+* Description: VCB handling header file.
 **************************************************************/
 #ifndef _VCB__H
 #define _VCB__H
@@ -36,8 +34,18 @@ extern VCB * vcb;
 #define     VCB_BLOCK_LOCATION              0
 #define 	MAGIC_NUMBER     9090
 
+// The `vcb_init` funtion initializes the volume control block (VCB). 
+// It either reads the VCB from disk or initizializes it with defualt values if not alreaddy initiaized. 
+// If there are issues during any step of this process, it returns -1 after freeing any allocated memory.
 int vcb_init(uint32_t number_of_blocks, uint16_t block_size);
-int vcb_read_from_disk(VCB *volume_control_block);
-int vcb_is_init(VCB * volumeControlBlock);
+
+// The `vcb_read_from_disk` function reads the VCB from disk using the LBAread method. 
+// If the read opration is unsuccesfull, it returns -1.
+int vcb_read_from_disk(VCB *vcb);
+
+// The `vcb_is_init` function checks if the VCB is already initialized by checking its magic number. 
+// It returns 0 if the VCB is not initialized or if the VCB pointer is null.
+int vcb_is_init(VCB *volume_control_block);
+
 
 #endif // _VCB__H
