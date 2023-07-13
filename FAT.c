@@ -34,7 +34,7 @@ int blocks_per_fat = -1;
 // this function is used to identify the first free block in the FAT.
 // Iterate through each block until it finds a block not in use.
 int find_first_empty_block_in_fat() {
-	fo (int i = vcv->reserved_blocks_count + 1; i < vcb->total_blocks_32; i++) {
+	fo (int i = vcb->reserved_blocks_count + 1; i < vcb->total_blocks_32; i++) {
 		if (fat_array[i] == 0) {
 			return i;
 		}
@@ -83,12 +83,29 @@ int fat_init(uint64_t number_of_blocks, uint64_t block_size) {
 
 }
 
-/*
- * volume already initialized load FAT from disk
- */
-int fat_read_from_disk(uin64_t num_blocks, uint64_t block_size) {
-    fat_array = malloc(vcb->FAT_size_32 * vcb->bytes_per_block);
-    return LBAread(fat_array, vcb->FAT_size_32, FAT_BLOCK_START_LOCATION);
+// read FAT from disk and stores it in memory
+int fat_read_from_disk() {
+	printf("read %d blocks of size %d\n", 154, 512);
+	
+	if (fat_array) {
+		free(fat_array);
+	}
+
+	fat_array = (int *) malloc(154* 512);
+	if (fat_array == NULL) {
+		fprintf(stderr, "Failed to allocate memory for FAT. \n");
+		return -1;
+	}
+
+	if (LBARread(fat_array, 154, FAT_BLOCK_START_LOCATION) == -1) {
+		fprintf(stderr, "Failed to read FAT from disk but was able to allocate memeory.\n");
+		free(fat_array);
+		fat_array = NULL;
+		return -1;
+	}
+	printf("read FAT from disk and was able to allocate memory.\n");
+
+	return 0;
 }
 
 /*
@@ -96,41 +113,28 @@ int fat_read_from_disk(uin64_t num_blocks, uint64_t block_size) {
  */
 uint32_t allocate_blocks(int blocks_to_allocate) {
 	
-LBAwrite( (void *) fat_array, vcb->FAT_size_32, vcb->FAT_start);
-	uint32_t first_block = -1; // first block of alloaction chain
+	uint32_t first_block =  find_first_empty_block_in_fat();
 	int previous = -1;
 	int blocks_allocated = 0;
-	int curr = 0; // index current block in the chain;
 
-	while (1) {
-		if (fat_array[curr] == 0)( { // 0 means lock is free
-				if (block_allocated == 0) { // found first free block
-					first_block = curr;
-
-					if (blocks_to_allocate == 1) {
-						// if we found first free block
-						// andd we only need one, we are done
-						break;
-					}
-				}
-
-				if (previous == -1) {
-					// nothing points to first block of chain
-					previous = curr;
-				} else {
-					// link the chain
-					fat_array[previous] = curr;
-					previous = curr;
-				}
-
-				blocks_allocated++; // track how many blocks we've allocated
-				if (blocks_allocated == blocks_to_allocate) break; // done after allocating all blocks we need
+	for (int curr = first_block; blocks_allocated < blocks_to_allocate && curr < vcb->total_blocks_32; curr++) {
+		if (fat_array[curr] == 0) {
+			if (previous != -1) {
+				fat_array[previous] = curr;
+			}
+			previous  = curr;
+			blocks_allocated++;
 		}
-		curr++; // move on to check next block
 	}
 
-	fat_array[curr] = -1; // end of chain signal
-	LBAwrite(fat_array, vcb->FAT_size_32, FAT_BBLOCK_START_LOCATION);
+	if (blocks_allocated < blocks_to_allocate) {
+		fprintf(stderr, "Not enough bblocks to allocate. \n");
+		return -1;
+	}
+
+	fat_array[previous] = -1;
+	update_fat_on_disk();
+
 	return first_block;
 }
 
@@ -153,8 +157,14 @@ void allocate_additional_bocks(uint32_t first_block, int blocks_to_allocate) {
 	// allocate new chain with desired amount of blocks
 	uint32_t first_new_block = allocate_blocks(blocks_to_allocate);
 
+	if (first_new_block == -1) {
+		fprintf(stderr, "Failed to allocate additional blocks.\n");
+		return;
+	}
+
 	// link the end of current chain to beginning of new one
 	fat_array[curr_index] = first_new_block;
+	update_fat_on_disk();
 }
 
 
@@ -163,50 +173,55 @@ void allocate_additional_bocks(uint32_t first_block, int blocks_to_allocate) {
  */
 uint32_t release_blocks(int first_blocks) {
 
-	int curr_index = first_bblock;
-	int next_index = 0;
-	int bblocks_freed = 0;
-
-	//k eep releasing until the end of chain
-	while (1) {
-		if (fat_array[curr_index] == -1) { // at end of chain
-			fat_array[curr_index] = 0;
-			blocks_freed++;
-			break;
-		}
-
-		// find next block to free
-		next_index = fat_array[curr_index];
-		fat_array[curr_index] = 0; //
+	int curr_index = first_block;
+	int blocks_freed = 0;
+	
+	while (fat_array[curr_index] != -1) {
+		int next_index = fat_array[curr_index];
+		fat_array[curr_index] = 0;
 		blocks_freed++;
-		curr_index = next_index; // move up the chain
+		curr_index = next_index;
 	}
 
-	LBAwrite(fat_array, vcb->FAT_size_32, FAT_BBLOCK_START_LOCATION);
+
+	update_fat_on_disk();
 	return blocks_freed;
 }
 
+
+// retrieves the next block in the chain for a specific block
 uint32_t get_next_block(int current_block) {
 	int next = fat_array[current_block];
-	if (next != -1){
-		return next;
-	}
-	return -1;
+	return next != -1 ? next : -1;
 }
 
 
-uint32_t find_free_block() {
-	int curr = 0; // start at the beginning of the FAT
-	
 
-	// loop through the entire FAT
-	while (curr < vcb->total_blocks_32) {
-		// if this block is free
-		if (fat_array[curr] == 0) {
-			return curr; // return the first free block
-		}
-		curr++; // move on to check next block
+
+// find a free block by calling the function to find the first empty block in the FAT.
+uint32_t find_free_block() {
+	uint32_t free_block = find_first_empty_block_in_fat();
+	if (free_block == -1) {
+		fprintf(stderr, "No free blocks available.\n");
+		return -1;
 	}
-	return -1; // return -1 if no free block is found
+
+	return free_block;
+}
+
+// check if a block is free by checking the corresponding entry in the FAT.
+int is_block_free(uint32_t block) {
+	return fat_array[block] == 0;
+}
+
+// return the total number of free block by counting the number of zero entries in the FAT
+uint32_t get_total_free_blocks() {
+	uint32_t free_blocks = 0;
+	for (int i = 0; i < vcb->total_blocks_32; i++) {
+		if (fat_array[i] == 0) {
+			free_blocks++;
+		}
+	}
+	return free_blocks;
 }
 
