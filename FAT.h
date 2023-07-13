@@ -15,31 +15,50 @@
 #ifndef __FAT_H__
 #define __FAT_H__
 
-#include <stdint.h>
-#define FAT_BLOCK_START 1
-#define RESERVED_BLOCKS 154 // assuming FAT will have 19531 blocks, 154 will be reserved for VCB and FAT itself
+#define FAT_BLOCK_START_LOCATION 1
 
-extern int * fat_array; // cached FAT in mem
+extern int * fat_array; // keep a copy of FAT while program is running
 extern int blocks_per_fat;
 
-//Function to initiate the fat
+// identify the first empty block in the FAT.
+// go through each block till infd a block not in use.
+int find_first_empty_block_in_fat();
+
+// upfates the FAT on disk
+void update_fat_on_disk();
+
+
+// initialze the FAT, calculates the size of FAT in bytes and blocks.
+// set up initial FAT structure after memeory allocation for FAT.
+// if memory allocation fails, an error message get logged and -1 returned.
 int fat_init(uint64_t number_of_blocks, uint64_t block_size);
 
-//function to load the fat from disk
+//load the fat from disk to memory
 int fat_read_from_disk();
 
-//functino to allocate blocks needed for fat
-int allocate_blocks(int blocks);
+// allocate new blocks in FAt, starts from first free block.
+// it logs an error if not enough free blocks to allocate and return -1.
+uint32_t allocate_blocks(int blocks_to_allocate);
 
 //functin to free blocks from fat
-uint32_t release_blocks(int start_block);
+uint32_t release_blocks(int first_block);
 
 //function to allocate more blocks if needed
-void allocate_additional_blocks(uint32_t start_block, uint32_t blocks);
+void allocate_additional_blocks(uint32_t first_block, int blocks_to_allocate);
 
 //function to get next block from fat
 uint32_t get_next_block(int current_block);
 
+// find first empty block in FAT
+uint32_t find_free_block();
+
+// check if a block is free, bby checking corresponding entry in the FAT
+// 0 being free
+int is_block_free(uint32_t block);
+
+// return total number of free blocks,
+// by counting the number of entries with zero values in FAT
+uint32_t get_total_free_blocks();
 
 #endif //__FAT_H__
 
