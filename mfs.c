@@ -95,3 +95,28 @@ int fs_setcwd(char *path) {
 
     return 0;
 }
+
+// This helper function checks whether the given attribute represents a directory.
+// It returns 1 if the attribute indicates a directory, and 0 otherwise.
+int check_directory_attribute(int attribute) {
+    return ((attribute >> 4) & 1);
+}
+
+// This function searches for a directory entry that matches the provided token (directory name)
+// within the given array of directory entries (current_dir_ent).
+// It iterates through each directory entry in the current directory until a match is found.
+// If a match is found, it allocates memory for a new directory entry, copies the matching entry into it,
+// and returns the new directory entry. If no match is found, it returns NULL.
+Directory_Entry* get_target_directory(Directory_Entry* current_dir_ent, char* token, int pathIndex, int pathLength) {
+    for (int i = 0; i < 4096; i++) {
+        // It goes through each directory in the current one until it finds a match
+        if (current_dir_ent[i].dir_name && strcmp(current_dir_ent[i].dir_name, token) == 0 && check_directory_attribute(current_dir_ent[i].dir_attr)) {
+            Directory_Entry *retVal = malloc(sizeof(Directory_Entry));
+            // Once we find the match, we copy it to our return value and then return it
+            memcpy(retVal, &current_dir_ent[i], sizeof(Directory_Entry));
+            return retVal;
+        }
+    }
+    // If we can't find a match, we return NULL
+    return NULL;
+}
