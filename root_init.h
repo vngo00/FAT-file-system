@@ -23,13 +23,14 @@
 #define _ROOT_INIT_H
 
 #define NAME_MAX_LENGTH	11 //only support short names
-#define DIRECTORY_MAX_LENGTH	128
+#define DIRECTORY_MAX_LENGTH	64
 
 typedef struct Directory_Entry {
-	char dir_name[NAME_MAX_LENGTH];
+    char dir_name[NAME_MAX_LENGTH];
 	uint32_t dir_attr;
 	uint32_t dir_first_cluster;
-	uint32_t dir_file_size;	
+	uint32_t dir_file_size;
+	uint32_t entries_array_location;
 } Directory_Entry;
 
 typedef struct Current_Working_Directory {
