@@ -13,32 +13,73 @@
 * Description:  free space management
 **************************************************************/
 
+// necessary libraries and modules for the file
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <stdio.h>
 
+
+
+// Including headers relevant to this file's operaitons.
+#include "fsLow.h"
+#include "mfs.h"
 #include "FAT.h"
 #include "vcb_.h"
 
+// Declaration of the file allocation table array and the blocks per FAT variable.
 int * fat_array = NULL;
 int blocks_per_fat = -1;
 
-int fat_init(uint64_t num_blocks, uint64_t block_size) {
-	int bytes_per_fat = number_of_blocks * sizeof(int);
-	blocks_per_fat = (bytes_per_fat + block_size - 1 ) / block_size; // round up
-        fat_array = malloc(blocks_per_fat * block_size);
-
-
-	fat_array[0] = -1; // vcb occupies block 0
-    
-
-
-	for (int i = 1; i <= blocks_per_fat; i++) {
-		if(i == blocks_per_fat){
-			fat_array[i] = -1; // -1 denotes end of the chain 
-	        } else {
-		        fat_array[i] = i + 1; // contiguous allocation for the FAT
+// this function is used to identify the first free block in the FAT.
+// Iterate through each block until it finds a block not in use.
+int find_first_empty_block_in_fat() {
+	fo (int i = vcv->reserved_blocks_count + 1; i < vcb->total_blocks_32; i++) {
+		if (fat_array[i] == 0) {
+			return i;
 		}
 	}
- 	 LBAwrite(fat_array, blocks_per_fat, FAT_BLOCK_START_LOCATION);
-	return 1; 
+	return -1;
+}
+
+// updates the FAT on disk. It uses the LBAwrite method to perform the write operation
+// if write fails, logs an error message.
+void update_fat_on_disk() {
+	if (LBAwrite(fat_array, block_per_fat, FAT_BLOCK_START_LOCATION) == -1) {
+		fprintf(stderr, "Failed to update FAT on disk.\n");
+	}
+}
+
+
+// initilizes the FAT. It calculates the size of the FAT in bytes and blocks.
+// After that, it allocates memory for the FAT and sets up the initial FAT structure.
+// If memory allocation fails, it logs an error message and return -1.
+int fat_init(uint64_t number_of_blocks, uint64_t block_size) {
+	printf("Initializing FAT with %ld blocks and block size of %ld\n", number_of_blocks, block_size);
+
+	int bytes_per_fat = number_of_blocks * sizeof(int);
+	printf("Calculated bytes_per_fat as %d\n", bytes_per_fat);
+
+	blocks_per_fat = (bytes_per_fat + block_size - 1 ) / block_size; // round up
+	printf("Calculated blocks_per_fat as %dn", blocks_per_fat);
+
+	printf("Trying to allocate %d blocks of size %d\n", blocks_per_fat, block_size);
+
+
+        fat_array = (int *)malloc(blocks_per_fat * block_size);
+
+
+    	if (!fat_array) {
+		fprintf(stderr, "Failed to allocate memory for FAT.\n");
+		return -1;
+	}
+	
+	for(int i = 0; i < number_of_blocks; i++) {
+		fat_array[i] = i == number_of_blocks -1 ? -1 : i +1;
+	}
+	
+	update_fat_on_disk();
+	return 0; 
 
 }
 
