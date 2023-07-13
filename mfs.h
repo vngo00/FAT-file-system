@@ -10,7 +10,10 @@
 *
 * File: mfs.h
 *
-* Description: File for handling
+* Description:
+*	This is the file system interface.
+*	This is the interface needed by the driver to interact with
+*	your filesystem.
 **************************************************************/
 #ifndef _MFS_H
 #define _MFS_H
@@ -74,8 +77,6 @@ int fs_isFile(char * filename);	//return 1 if file, 0 otherwise
 int fs_isDir(char * pathname);		//return 1 if directory, 0 otherwise
 int fs_delete(char* filename);	//removes a file
 
-
-
 // extra handlers 
 void build_absolute_path(char * buf, const char * pathname);
 
@@ -83,7 +84,6 @@ void build_absolute_path(char * buf, const char * pathname);
 // It takes an attribute as input and returns 1 if the attribute 
 // indicates a directory, and 0 otherwise.
 int check_directory_attribute(int attribute);
-
 
 // This function searches for a directory entry that matches the provided token (directory name)
 // within the given array of directory entries (current_dir_ent).
