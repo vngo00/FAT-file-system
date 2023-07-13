@@ -120,3 +120,72 @@ Directory_Entry* get_target_directory(Directory_Entry* current_dir_ent, char* to
     // If we can't find a match, we return NULL
     return NULL;
 }
+
+// This function parses a directory path and finds the corresponding directory entry.
+// It takes a path and a target parameter as input.
+// If the provided path is NULL, the function prints an error message and returns NULL.
+// Otherwise, it searches for the directory entry that matches the path.
+// If a matching directory entry is found, it returns a pointer to the directory entry.
+// If no matching directory entry is found or an error occurs, it returns NULL.
+Directory_Entry* parse_directory_path(const char* path, int target) {
+    // We can't parse a NULL path, so we return NULL if we get one
+    if (!path) {
+        printf("NULL path.\n");
+        return NULL;
+    }
+
+    // Allocate memory for the current directory entry and a temporary string.
+    Directory_Entry* current_dir_ent = malloc(512);
+    char* temp = malloc(strlen(path) + 1);
+
+    // If memory allocation fails for either variable, return NULL.
+    // We cannot proceed without the allocated memory.
+    if (!current_dir_ent || !temp) {
+        printf("Failed to allocate memory.\n");
+        return NULL;
+    }
+
+    // Copy the root directory entries to the current directory entries array.
+    // This allows us to start the directory path traversal from the root directory.
+    memcpy(current_dir_ent, root_directory, 512);
+
+    // Copy the original path to a temporary string for tokenization.
+    // This ensures that the original path is not modified during tokenization.
+    strcpy(temp, path);
+
+    // Iterate through each token (directory) in the path and attempt to find
+    // a matching directory in the current directory.
+    char* token = strtok(temp, "/");
+    int pathLength = 0;
+
+    // Count the number of tokens in the path to determine the path length.
+    // This is useful for tracking the progress of path traversal.
+    while (token != NULL) {
+        pathLength++;
+        token = strtok(NULL, "/");
+    }
+
+    // Copy the original path to the temporary string for tokenization.
+    strcpy(temp, path);
+
+    // Retrieve the first token (directory) from the temporary string.
+    // This prepares the initial token for directory matching in the current directory.
+    token = strtok(temp, "/");
+
+    // Iterate through each token (directory) in the path and attempt to find a matching 
+    // directory in the current directory.
+    for(int pathIndex = 0; pathIndex < pathLength; pathIndex++) {
+
+        // Get the directory entry that matches the current token in the path.
+        Directory_Entry* retVal = get_target_directory(current_dir_ent, token, pathIndex, pathLength);
+        // If a matching directory entry is found, return it.
+        if (retVal != NULL) {
+            return retVal;
+        }
+
+        // Retrieve the next token (directory) from the path.
+        token = strtok(NULL, "/");
+    }
+    // If can't find a match, it returns NULL
+    return NULL;
+}
