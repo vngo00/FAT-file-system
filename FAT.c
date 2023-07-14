@@ -55,7 +55,7 @@ void update_fat_on_disk() {
 // After that, it allocates memory for the FAT and sets up the initial FAT structure.
 // If memory allocation fails, it logs an error message and return -1.
 int fat_init(uint64_t number_of_blocks, uint64_t block_size) {
-	printf("Initializing FAT with %ld blocks and block size of %ld\n", number_of_blocks, block_size);
+	//printf("Initializing FAT with %ld blocks and block size of %ld\n", number_of_blocks, block_size);
 
 	int bytes_per_fat = number_of_blocks * sizeof(int);
 	printf("Calculated bytes_per_fat as %d\n", bytes_per_fat);
@@ -63,7 +63,7 @@ int fat_init(uint64_t number_of_blocks, uint64_t block_size) {
 	blocks_per_fat = (bytes_per_fat + block_size - 1 ) / block_size; // round up
 	printf("Calculated blocks_per_fat as %dn", blocks_per_fat);
 
-	printf("Trying to allocate %d blocks of size %d\n", blocks_per_fat, block_size);
+	//printf("Trying to allocate %d blocks of size %d\n", blocks_per_fat, block_size);
 
 
         fat_array = (int *)malloc(blocks_per_fat * block_size);

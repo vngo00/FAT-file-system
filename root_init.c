@@ -113,7 +113,7 @@ uint32_t init_directory(uint64_t block_size, Directory_Entry *parent_directory, 
     }
     // Write the new directory to disk
     uint32_t ret_value = LBAwrite(new_directory, (sizeof(Directory_Entry) + vcb->bytes_per_block - 1) / vcb->bytes_per_block, new_directory->dir_first_cluster);
-    printf("New Dir First Cluster %ld", new_directory->dir_first_cluster);
+//    printf("New Dir First Cluster %ld", new_directory->dir_first_cluster);
     if (ret_value == -1)
     {
         free(new_directory);
