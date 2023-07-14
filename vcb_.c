@@ -43,7 +43,7 @@ int vcb_init(uint32_t number_of_blocks, uint16_t block_size) {
     if (!vcb_is_init(vcb)) {
         printf("VCB IS NOT INIT TRYING TO INIT IT NOW \n");
         vcb->total_blocks_32 = 19531;
-        vcb->FAT_size_32 = 154;
+        vcb->FAT_size_32 = 153;
         vcb->root_cluster = 154;
         vcb->free_space = fat_init(vcb->total_blocks_32, block_size);
         if (vcb->free_space < 0) {
@@ -52,9 +52,9 @@ int vcb_init(uint32_t number_of_blocks, uint16_t block_size) {
             return -1;
         }
         vcb->magic_number = MAGIC_NUMBER;
-        vcb->entries_per_dir = 4096;
+        vcb->entries_per_dir = 128;
         vcb->bytes_per_block = 512;
-        vcb->reserved_blocks_count = 154;
+        vcb->reserved_blocks_count = 155;
         vcb->root_entry_count = 2;
 
         // Initialize the root directory
