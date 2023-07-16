@@ -1,11 +1,12 @@
 /**************************************************************
-* Class:  CSC-415-0# Fall 2021
-* Names: 
-* Student IDs:
-* GitHub Name:
-* Group Name:
+* Class:  CSC-415-01 Summer 2023
+* Names: Tyler Fulinara, Rafael Sant Ana Leitao, Anthony Silva , Vinh Ngo Rafael Fabiani
+* Student IDs: 922002234, 920984945,
+922907645, 921919541,
+922965105
+* GitHub Name: rf922
+* Group Name: MKFS
 * Project: Basic File System
-*
 * File: b_io.c
 *
 * Description: Basic File System - Key File I/O Operations

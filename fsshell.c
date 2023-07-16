@@ -1,9 +1,11 @@
 /**************************************************************
-* Class:  CSC-415-0# - Summer 2023
-* Names: 
-* Student IDs:
-* GitHub Name:
-* Group Name:
+* Class:  CSC-415-01 Summer 2023
+* Names: Tyler Fulinara, Rafael Sant Ana Leitao, Anthony Silva , Vinh Ngo Rafael Fabiani
+* Student IDs:922002234, 920984945,
+922907645, 921919541,
+922965105
+* GitHub Name:rf922
+* Group Name:MKFS
 * Project: Basic File System
 *
 * File: fsShell.c
@@ -14,6 +16,7 @@
 * when you are ready to test that feature
 *
 **************************************************************/
+
 
 
 #include <stdlib.h>
@@ -39,12 +42,12 @@
 #define CMDLS_ON	0
 #define CMDCP_ON	0
 #define CMDMV_ON	0
-#define CMDMD_ON	0
+#define CMDMD_ON	1
 #define CMDRM_ON	0
 #define CMDCP2L_ON	0
 #define CMDCP2FS_ON	0
 #define CMDCD_ON	0
-#define CMDPWD_ON	0
+#define CMDPWD_ON	1
 #define CMDTOUCH_ON	0
 #define CMDCAT_ON	0
 

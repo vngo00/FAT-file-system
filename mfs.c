@@ -189,3 +189,32 @@ Directory_Entry* parse_directory_path(const char* path, int target) {
     // If can't find a match, it returns NULL
     return NULL;
 }
+
+int fs_mkdir(const char *pathname, mode_t mode){
+    printf("[ FS MKDIR ] : Attempting to create a directory with pathname: %s and mode: %d\n", pathname, mode);
+
+    printf("[ FS MKDIR ] : Loading root directory...\n");
+    
+    int load_directory_result = load_directory(vcb->bytes_per_block, root_directory);
+    if (load_directory_result == -1) {
+        printf("[ FS MKDIR ] : Failed to load root directory. Load directory returned: %d.\n", load_directory_result);
+        return -1;
+    }
+    
+    printf("[ FS MKDIR ] : Root directory loaded successfully.\n");
+    Directory_Entry *new_directory = malloc(512);
+    LBAread(new_directory, 1, load_directory_result);
+    printf("[ FS MKDIR ] : Attempting to create new directory under root directory...\n");
+    int init_directory_result = init_directory(vcb->bytes_per_block, new_directory, (char*)pathname);
+    if (init_directory_result == -1) {
+        printf("[ FS MKDIR ] : Failed to create directory. Init directory returned: %d.\n", init_directory_result);
+        return -1;
+    }
+
+    printf("[ FS MKDIR ] : Directory %s created successfully.\n", pathname);
+    return 0;
+}
+
+char * fs_getcwd(char *path, size_t size) {
+    return    current_working_directory->path;
+}

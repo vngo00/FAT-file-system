@@ -20,9 +20,6 @@
 extern int * fat_array; // keep a copy of FAT while program is running
 extern int blocks_per_fat;
 
-// identify the first empty block in the FAT.
-// go through each block till infd a block not in use.
-int find_first_empty_block_in_fat();
 
 // upfates the FAT on disk
 void update_fat_on_disk();

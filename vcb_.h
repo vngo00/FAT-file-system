@@ -18,7 +18,7 @@
 
 typedef struct VCB {//size of fields, desc of field
     uint32_t total_blocks_32;     // 4 bytes, the total number of blocks in the file system
-    uint32_t FAT_start;           // 4 bytes, Start of the FAT Table 
+//    uint32_t FAT_start;           // 4 bytes, Start of the FAT Table 
     uint32_t FAT_size_32;  // 4 bytes, total blocks in the FAT
     uint32_t root_cluster;        // 4 bytes, location of the root
     uint32_t free_space;          // 4 bytes, amount of free blocks
@@ -26,7 +26,7 @@ typedef struct VCB {//size of fields, desc of field
     uint32_t entries_per_dir;     // 4 bytes
     uint16_t bytes_per_block;     //  2 bytes, blockSize,
     uint16_t reserved_blocks_count;   // 2 bytes, reserved blocks count
-    uint16_t root_entry_count;    // 2 bytes, entries in the root
+//    uint16_t root_entry_count;    // 2 bytes, entries in the root
 } VCB;
 
 extern VCB * vcb;
@@ -45,7 +45,7 @@ int vcb_read_from_disk(VCB *vcb);
 
 // The `vcb_is_init` function checks if the VCB is already initialized by checking its magic number. 
 // It returns 0 if the VCB is not initialized or if the VCB pointer is null.
-int vcb_is_init(VCB *volume_control_block);
+int vcb_is_init();
 
 
 #endif // _VCB__H

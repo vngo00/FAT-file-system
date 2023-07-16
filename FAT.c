@@ -31,15 +31,20 @@
 int * fat_array = NULL;
 int blocks_per_fat = -1;
 
-// this function is used to identify the first free block in the FAT.
-// Iterate through each block until it finds a block not in use.
-int find_first_empty_block_in_fat() {
-	for (int i = vcb->reserved_blocks_count; i < vcb->total_blocks_32; i++) {
-		if (fat_array[i] == -1) {
-			return i;
-		}
-	}
-	return -1;
+uint32_t find_free_block() {
+    printf("[ FIND FREE BLOCK ] : Searching for a free block...\n");
+    for (int i = vcb->reserved_blocks_count; i < vcb->total_blocks_32; i++) {
+        if (fat_array[i] != -1) {
+            printf("[ FIND FREE BLOCK ] : Free block found at index %d\n", i);
+            fat_array[i] = -1; // mark as reserved
+            update_fat_on_disk();
+            return i;
+        }
+        printf("[ FIND FREE BLOCK ] : Free block not  found at index %d\n", i);
+
+    }
+    fprintf(stderr, "[ FIND FREE BLOCK ] : No free blocks available.\n");
+    return -1;
 }
 
 // updates the FAT on disk. It uses the LBAwrite method to perform the write operation
@@ -55,57 +60,63 @@ void update_fat_on_disk() {
 // After that, it allocates memory for the FAT and sets up the initial FAT structure.
 // If memory allocation fails, it logs an error message and return -1.
 int fat_init(uint64_t number_of_blocks, uint64_t block_size) {
-	//printf("Initializing FAT with %ld blocks and block size of %ld\n", number_of_blocks, block_size);
+    printf("[ FAT INIT ] : Initializing FAT with %ld blocks and block size of %ld\n", number_of_blocks, block_size);
 
-	int bytes_per_fat = number_of_blocks * sizeof(int);
-	printf("Calculated bytes_per_fat as %d\n", bytes_per_fat);
+    int bytes_per_fat = number_of_blocks * sizeof(int);
+    printf("[ FAT INIT ] : Calculated bytes_per_fat as %d\n", bytes_per_fat);
 
-	blocks_per_fat = (bytes_per_fat + block_size - 1 ) / block_size; // round up
-	printf("Calculated blocks_per_fat as %dn", blocks_per_fat);
+    blocks_per_fat = (bytes_per_fat + (block_size - 1) ) / block_size;
+    printf("[ FAT INIT ] : Calculated blocks_per_fat as %d\n", blocks_per_fat);
 
-	//printf("Trying to allocate %d blocks of size %d\n", blocks_per_fat, block_size);
+    printf("[ FAT INIT ] : Trying to allocate %d blocks of size %d\n", blocks_per_fat, block_size);
 
+    fat_array = (int*)malloc(blocks_per_fat * block_size);
 
-        fat_array = (int *)malloc(blocks_per_fat * block_size);
+    if (!fat_array) {
+        fprintf(stderr, "[ FAT INIT ] : Failed to allocate memory for FAT.\n");
+        return -1;
+    }
 
+    for(int i = 0; i < number_of_blocks; i++){
+        if(i <= vcb->reserved_blocks_count){
+            
+            fat_array[i] = -2;
+//            printf("[ FAT INIT ] : Block number %d set as RESERVED (-2)\n", i);
+        }else{
+            fat_array[i] = i == number_of_blocks - 1 ? -1 : i + 1;
+            if(i == number_of_blocks - 1) {
+                printf("[ FAT INIT ] : Block number %d set as END OF FILE (-1)\n", i);
+            } else {
+            }         
+        }
+    }
 
-    	if (!fat_array) {
-		fprintf(stderr, "Failed to allocate memory for FAT.\n");
-		return -1;
-	}
-	
-	for(int i = 0; i < number_of_blocks; i++) {
-		fat_array[i] = i == number_of_blocks -1 ? -1 : i +1;
-	}
-	
-	update_fat_on_disk();
-	return 0; 
+    printf("[ FAT INIT ] : FAT is being updated on disk\n");
+    update_fat_on_disk();
 
+    printf("[ FAT INIT ] : FAT initialization successful\n");
+    return 0; 
 }
 
 // read FAT from disk and stores it in memory
 int fat_read_from_disk() {
-	printf("read %d blocks of size %d\n", 153, 512);
-	
-	if (fat_array) {
-		free(fat_array);
-	}
+    printf("[ FAT READ ] : Trying to read %d blocks of size %d\n", vcb->FAT_size_32, vcb->bytes_per_block);
 
-	fat_array = (int *) malloc(153* 512);
-	if (fat_array == NULL) {
-		fprintf(stderr, "Failed to allocate memory for FAT. \n");
-		return -1;
-	}
+    fat_array = (int*)malloc(vcb->FAT_size_32 * vcb->bytes_per_block);
+    if (fat_array == NULL) {
+        fprintf(stderr, "[ FAT READ ] : Failed to allocate memory for FAT.\n");
+        return -1;
+    }
 
-	if (LBAread(fat_array, 153, FAT_BLOCK_START_LOCATION) == -1) {
-		fprintf(stderr, "Failed to read FAT from disk but was able to allocate memeory.\n");
-		free(fat_array);
-		fat_array = NULL;
-		return -1;
-	}
-	printf("read FAT from disk and was able to allocate memory.\n");
+    if (LBAread(fat_array, vcb->FAT_size_32, FAT_BLOCK_START_LOCATION) == -1) {
+        fprintf(stderr, "[ FAT READ ] : Failed to read FAT from disk but was able to allocate memory.\n");
+        free(fat_array);
+        fat_array = NULL;
+        return -1;
+    }
 
-	return 0;
+    printf("[ FAT READ ] : Successfully read FAT from disk and allocated memory.\n");
+    return 0;
 }
 
 /*
@@ -113,7 +124,7 @@ int fat_read_from_disk() {
  */
 uint32_t allocate_blocks(int blocks_to_allocate) {
 	
-	uint32_t first_block =  find_first_empty_block_in_fat();
+	uint32_t first_block =  find_free_block();
 	int previous = -1;
 	int blocks_allocated = 0;
 
@@ -197,17 +208,6 @@ uint32_t get_next_block(int current_block) {
 
 
 
-
-// find a free block by calling the function to find the first empty block in the FAT.
-uint32_t find_free_block() {
-	uint32_t free_block = find_first_empty_block_in_fat();
-	if (free_block == -1) {
-		fprintf(stderr, "No free blocks available.\n");
-		return -1;
-	}
-
-	return free_block;
-}
 
 // check if a block is free by checking the corresponding entry in the FAT.
 int is_block_free(uint32_t block) {
