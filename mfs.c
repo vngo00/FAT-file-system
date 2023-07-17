@@ -95,18 +95,48 @@ char* fs_getcwd(char * path, size_t size) {
 }
 
 int fs_setcwd(char *path) {
-    char* new_cwd = malloc(255);
-    if (new_cwd == NULL) {
-        return -1;
+    char *new_cwd = NULL;
+
+    if (strcmp(path, "..") == 0) {
+        printf("[ FS SETCWD ]: Handling parent directory case.\n");
+        if (strcmp(cwd, "/") == 0) {
+            printf("[ FS SETCWD ]: Already at root, cannot go up any further.\n");
+            return 0;
+        }
+        new_cwd = malloc(255);
+        if (new_cwd == NULL) {
+            printf("[ FS SETCWD ]: Failed to allocate memory for new_cwd.\n");
+            return -1;
+        }
+        strcpy(new_cwd, cwd);
+        char *last_slash = strrchr(new_cwd, '/');
+        if (last_slash != new_cwd) {
+            *last_slash = '\0';
+            printf("[ FS SETCWD ]: Moved up to parent directory.\n");
+        } else {
+            *(last_slash + 1) = '\0';
+            printf("[ FS SETCWD ]: Moved up to root directory.\n");
+        }
+    } else {
+        printf("[ FS SETCWD ]: Building new path.\n");
+        new_cwd = malloc(255);
+        if (new_cwd == NULL) {
+            printf("[ FS SETCWD ]: Failed to allocate memory for new_cwd.\n");
+            return -1;
+        }
+        strcpy(new_cwd, build_absolute_path(path));
     }
 
-    strcpy(new_cwd, build_absolute_path(path));
     if (cwd != NULL) { 
         free(cwd);
+        printf("[ FS SETCWD ]: Freed old cwd.\n");
     }
     cwd = new_cwd;
+    printf("[ FS SETCWD ]: Set cwd to new_cwd.\n");
+
     return 0;
 }
+
 
 
 // This helper function checks whether the given attribute represents a directory.
@@ -184,7 +214,18 @@ Directory_Entry* parse_directory_path(const char* path) {
         printf("[ PARSE DIRECTORY PATH ] : NULL path detected.\n");
         return NULL;
     }
+    if (strcmp(path, "/") == 0) {
+        printf("[ PARSE DIRECTORY PATH ] : Root directory detected.\n");
 
+        Directory_Entry* root_copy = malloc(sizeof (Directory_Entry));
+        if (!root_copy) {
+            printf("[ PARSE DIRECTORY PATH ] : Failed to allocate memory.\n");
+            return NULL;
+        }
+        LBAread(root_copy, 1, vcb->root_cluster);
+        return root_copy;
+    }
+    
     Directory_Entry* current_dir_ent = malloc(sizeof (Directory_Entry));
     char* temp = malloc(strlen(path) + 1);
     if (!current_dir_ent || !temp) {
