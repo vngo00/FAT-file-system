@@ -12,15 +12,11 @@
 *
 * Description: VCB handling source file.
 **************************************************************/
-
-// Importing necessary libraries and modules for this file.
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
-
-// Including headers relevant to this file's operations.
 #include "fsLow.h"
 #include "mfs.h"
 #include "vcb_.h"

@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <assert.h>   
+#include <assert.h> //for assert()
 
 #include "fsLow.h"
 #include "mfs.h"

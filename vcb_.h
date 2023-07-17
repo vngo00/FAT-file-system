@@ -14,7 +14,7 @@
 **************************************************************/
 #ifndef _VCB__H
 #define _VCB__H
-#include <stdint.h> // This includes standard integer types like uint32_t and uint16_t
+#include <stdint.h> 
 
 typedef struct VCB {//size of fields, desc of field
     uint32_t total_blocks_32;     // 4 bytes, the total number of blocks in the file system
