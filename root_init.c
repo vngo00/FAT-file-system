@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>   
 
 #include "fsLow.h"
 #include "mfs.h"
@@ -23,120 +24,131 @@
 #include "root_init.h"
 
 // Initialize the current working directory and root directory
-Current_Working_Directory *current_working_directory = NULL;
 Directory_Entry *root_directory = NULL;
+char * cwd = NULL;
+
 
 /*
  * Function to initialize a new directory.
  * Can also be used to create the root directory
  */
 uint32_t init_directory(uint64_t block_size, Directory_Entry* parent_directory, char* dir_name) {
-    printf("[ INIT DIRECTORY ]: Starting initialization of directory %s\n", dir_name);
+    assert(dir_name != NULL);
 
-    // Allocate memory for the new directory
-    Directory_Entry* new_directory = malloc(sizeof(Directory_Entry));
-    if (new_directory == NULL) {
-        printf("[ INIT DIRECTORY ]: Failed to allocate memory for new directory");
+    if (strlen(dir_name) > NAME_MAX_LENGTH) {
+        fprintf(stderr, "[ INIT DIRECTORY ]: Directory name is too long.\n");
         return -1;
     }
-    printf("[ INIT DIRECTORY ]: Memory for new directory %s allocated successfully\n", dir_name);
 
-    // Copy the directory name and set directory attribute
-    strncpy(new_directory->dir_name, dir_name, strlen(dir_name));
-    new_directory->dir_attr = new_directory->dir_attr |= 1UL << 4;
-    printf("[ INIT DIRECTORY ]: Directory name set to %s and attribute set to %lu\n", new_directory->dir_name, new_directory->dir_attr);
+    Directory_Entry* new_directory = calloc(1, sizeof(Directory_Entry));
+    if (new_directory == NULL) {
+        perror("[ INIT DIRECTORY ]: Failed to allocate memory for new directory");
+        return -1;
+    }
 
-    // Determine the first cluster of the new directory
+    strncpy(new_directory->dir_name, dir_name, NAME_MAX_LENGTH);
+    new_directory->dir_attr |= 1UL << 4;
+
     uint32_t first_cluster = parent_directory == NULL ? vcb->root_cluster : find_free_block();
-    printf("[ INIT DIRECTORY ]: First cluster: %u\n", first_cluster);
 
-    // Set the size and location of the entries array for the directory
     new_directory->dir_file_size = vcb->entries_per_dir * sizeof(Directory_Entry);
     new_directory->entries_array_location = find_free_block();
     new_directory->dir_first_cluster = first_cluster;
-    printf("[ INIT DIRECTORY ]: Directory file size set to %lu and entries array location set to %lu\n", new_directory->dir_file_size, new_directory->entries_array_location);
 
-    // Allocate memory for directory entries
-    Directory_Entry* entries = malloc(vcb->entries_per_dir * sizeof(Directory_Entry));
+    if (parent_directory == NULL) {
+        new_directory->path[0] = '/';
+        cwd = calloc(NAME_MAX_LENGTH + 1, sizeof(char));
+        cwd[0] = '/';
+    }
+
+    Directory_Entry* entries = calloc(vcb->entries_per_dir, sizeof(Directory_Entry));
     if (entries == NULL) {
-        printf("[ INIT DIRECTORY ]: Failed to allocate memory for directory entries");
+        perror("[ INIT DIRECTORY ]: Failed to allocate memory for directory entries");
         free(new_directory);
         return -1;
     }
-    printf("[ INIT DIRECTORY ]: Memory for directory entries allocated successfully\n");
 
-    // Initialize entries with empty names
-    for (int i = 2; i < vcb->entries_per_dir; i++) {
-        entries[i].dir_name[0] = '\0';
-    }
-
-    // Set '.' and '..' entries
-    Directory_Entry dot_entry, dot_dot_entry;
-    dot_entry.dir_name[0] = '.';
-    dot_entry.dir_name[1] = '\0';
-    dot_dot_entry.dir_name[0] = '.';
-    dot_dot_entry.dir_name[1] = '.';
-    dot_dot_entry.dir_name[2] = '\0';
-
-    dot_entry.dir_attr = dot_dot_entry.dir_attr = new_directory->dir_attr;
-    dot_entry.dir_first_cluster = dot_dot_entry.dir_first_cluster = first_cluster;
-    dot_entry.dir_file_size = dot_dot_entry.dir_file_size = new_directory->dir_file_size;
-    dot_entry.entries_array_location = dot_dot_entry.entries_array_location = new_directory->entries_array_location;
-    printf("[ INIT DIRECTORY ]: '.' and '..' entries set\n");
+    Directory_Entry dot_entry = { .dir_name = ".", .dir_attr = new_directory->dir_attr, .dir_first_cluster = first_cluster, .dir_file_size = new_directory->dir_file_size, .entries_array_location = new_directory->entries_array_location };
+    Directory_Entry dot_dot_entry = { .dir_name = "..", .dir_attr = new_directory->dir_attr, .dir_first_cluster = first_cluster, .dir_file_size = new_directory->dir_file_size, .entries_array_location = new_directory->entries_array_location };
 
     entries[0] = dot_entry;
     entries[1] = dot_dot_entry;
 
-    // If the new directory has a parent, link it to the parent
     if (parent_directory != NULL) {
-        dot_dot_entry.dir_first_cluster = parent_directory->dir_first_cluster;
-        Directory_Entry* parent_array = malloc(vcb->entries_per_dir * sizeof(Directory_Entry));
-        LBAread(parent_array, (sizeof(parent_array) + vcb->bytes_per_block - 1) / vcb->bytes_per_block, parent_directory->entries_array_location);
+        char buff[NAME_MAX_LENGTH + 1];
+        strncpy(buff, parent_directory->path, NAME_MAX_LENGTH);
+        strncat(buff, "/", NAME_MAX_LENGTH - strlen(buff));
+        strncat(buff, dir_name, NAME_MAX_LENGTH - strlen(buff));
 
-        printf("[ INIT DIRECTORY ]: Reading parent directory entries\n");
-
-        int i = 0;
-        for (; i < DIRECTORY_MAX_LENGTH; i++) {
-            if (strlen(parent_array[i].dir_name) == 0) {
-                parent_array[i] = *new_directory;
-                break;
-            }
-        }
-        if (i == DIRECTORY_MAX_LENGTH) {
-            printf("[ INIT DIRECTORY ]: Parent directory has no space for new directory.\n");
-            free(parent_array);
-            free(new_directory);
+        if (add_entry_to_parent(parent_directory, new_directory, buff) == -1) {
             free(entries);
+            free(new_directory);
             return -1;
         }
-
-        printf("[ INIT DIRECTORY ]: Writing new directory to parent\n");
-        LBAwrite(parent_array, (sizeof(Directory_Entry) * (DIRECTORY_MAX_LENGTH) + vcb->bytes_per_block - 1) / vcb->bytes_per_block, parent_directory->entries_array_location);
-
-        free(parent_array);
     }
 
-    printf("[ INIT DIRECTORY ]: Writing new directory to disk\n");
-    uint32_t ret_value = LBAwrite(new_directory, (sizeof(Directory_Entry) + vcb->bytes_per_block - 1) / vcb->bytes_per_block, new_directory->dir_first_cluster);
-    printf("[ INIT DIRECTORY ]: New Dir First Cluster %ld\n", new_directory->dir_first_cluster);
+    int ret_value = LBAwrite(new_directory, 1, new_directory->dir_first_cluster);
     if (ret_value == -1) {
-        printf("[ INIT DIRECTORY ]: Something went wrong when writing the new directory");
+        perror("[ INIT DIRECTORY ]: Error writing the new directory");
         free(new_directory);
-        new_directory = NULL;
         free(entries);
-        return ret_value;
+        return -1;
     }
 
-    printf("[ INIT DIRECTORY ]: Writing directory entries to disk\n");
-    printf("[ INIT DIRECTORY ]: Entries array location: %lu\n", new_directory->entries_array_location); // Print entries array location
-    LBAwrite(entries, vcb->entries_per_dir * sizeof(Directory_Entry), new_directory->entries_array_location);
-    printf("[ INIT DIRECTORY ]: Entries array written to disk\n"); // Print when entries array is written
+    LBAwrite(entries, vcb->entries_per_dir, new_directory->entries_array_location);
+
     free(entries);
     free(new_directory);
 
-    printf("[ INIT DIRECTORY ]: Directory %s successfully initialized\n", dir_name);
+    return first_cluster;
+}
 
-    return new_directory->dir_first_cluster;
+int add_entry_to_parent(Directory_Entry* parent_directory, Directory_Entry* new_directory, char* new_path) {
+    assert(parent_directory != NULL);
+    assert(new_directory != NULL);
+    assert(new_path != NULL);
+
+    Directory_Entry* parent_array = malloc(vcb->entries_per_dir * sizeof(Directory_Entry));
+    if (parent_array == NULL) {
+        perror("[ INIT DIRECTORY ]: Error allocating memory for parent array");
+        return -1;
+    }
+
+    if (LBAread(parent_array, 1, parent_directory->entries_array_location) == -1) {
+        perror("[ INIT DIRECTORY ]: Error reading parent directory entries");
+        free(parent_array);
+        return -1;
+    }
+
+    int i;
+    for (i = 0; i < DIRECTORY_MAX_LENGTH; i++) {
+        if (parent_array[i].dir_name[0] == '\0') {
+            parent_array[i] = *new_directory;
+            break;
+        }
+    }
+
+    if (i == DIRECTORY_MAX_LENGTH) {
+        fprintf(stderr, "[ INIT DIRECTORY ]: Parent directory has no space for new directory.\n");
+        free(parent_array);
+        return -1;
+    }
+
+    LBAwrite(parent_array, 1, parent_directory->entries_array_location);
+    strncpy(new_directory->path, new_path, NAME_MAX_LENGTH);
+
+    free(parent_array);
+    return 0;
+}
+
+int load_root(){
+    root_directory = malloc(vcb->bytes_per_block*vcb->entries_per_dir);
+    LBAread(root_directory,1, vcb->root_cluster);
+    load_directory (vcb->bytes_per_block, root_directory);
+    cwd = malloc(NAME_MAX_LENGTH);
+    cwd[0] = '/';
+        cwd[1] = '\0';
+    return 0;
 }
 
 /*
@@ -144,47 +156,49 @@ uint32_t init_directory(uint64_t block_size, Directory_Entry* parent_directory, 
  * If the provided directory is NULL, it will load the root directory
  */
 int load_directory(uint64_t block_size, Directory_Entry* directory) {
-    printf("[ LOAD DIRECTORY ] : Loading directory...\n");
- int block_num = -1;
-    // If the directory is NULL,  dealing with the root directory.
+    printf("[ LOAD DIRECTORY ] : Starting process to load directory...\n");
+
+    int block_num = -1;
+    printf("[ LOAD DIRECTORY ] : Initialized block_num to -1...\n");
+
     if (directory == NULL) {
-        printf("[ LOAD DIRECTORY ] : Directory is NULL. Allocating memory for root directory...\n");
+        printf("[ LOAD DIRECTORY ] : Detected NULL directory, assuming root directory...\n");
 
-        //  allocating memory for the root directory here.
         root_directory = malloc(block_size * vcb->entries_per_dir);
-
-        // If couldn't get the memory,  just print an error message and return -1.
         if (root_directory == NULL) {
-            printf("[ LOAD DIRECTORY ] : Failed to allocate memory for root directory.\n");
+            printf("[ LOAD DIRECTORY ] : Failed to allocate memory for root directory...\n");
             return -1;
         }
 
-        // reading the root directory from the disk here.
-        printf("[ LOAD DIRECTORY ] : Reading root directory from disk...\n");
+        printf("[ LOAD DIRECTORY ] : Reading root directory from disk at location %d...\n", vcb->root_cluster);
         LBAread(root_directory, 1, vcb->root_cluster);
-        return 0;
-    } else {
-        printf("[ LOAD DIRECTORY ] : Directory is non-NULL. Allocating memory for directory...\n");
+        printf("[ LOAD DIRECTORY ] : Completed reading root directory from disk at location %d...\n", root_directory->dir_first_cluster);
 
-        //  non-root directory.
-        // allocating memory for the directory here.
+        printf("[ LOAD DIRECTORY ] : Root directory loaded successfully...\n");
+        return vcb->root_cluster;
+    }
+    else {
+        printf("[ LOAD DIRECTORY ] : Detected non-NULL directory, starting process for non-root directory...\n");
+
         Directory_Entry* new_directory = malloc(block_size * vcb->entries_per_dir);
-
-        // If  couldn't get the memory, just print an error message and return -1.
         if (new_directory == NULL) {
-            printf("[ LOAD DIRECTORY ] : Failed to allocate memory for directory.\n");
+            printf("[ LOAD DIRECTORY ] : Failed to allocate memory for directory...\n");
             return -1;
         }
 
-        // reading the directory from the disk here.
-        printf("[ LOAD DIRECTORY ] : Reading directory from disk...\n");
+        printf("[ LOAD DIRECTORY ] : Reading directory from disk at location %d...\n", directory->dir_first_cluster);
         LBAread(new_directory, 1, directory->dir_first_cluster);
-        block_num =  new_directory->dir_first_cluster;
+        printf("[ LOAD DIRECTORY ] : Completed reading directory from disk, directory name: %s...\n", new_directory->dir_name);
+
+        block_num = new_directory->dir_first_cluster;
+        printf("[ LOAD DIRECTORY ] : block_num set to %d...\n", block_num);
+
+        printf("[ LOAD DIRECTORY ] : Freeing memory allocated for directory...\n");
         free(new_directory);
     }
- 
-    printf("[ LOAD DIRECTORY ] : Directory loaded successfully.\n");
-    return block_num;;
+
+    printf("[ LOAD DIRECTORY ] : Directory loaded successfully, returning block number: %d...\n", block_num);
+    return block_num;
 }
 
 
@@ -193,7 +207,7 @@ int load_directory(uint64_t block_size, Directory_Entry* directory) {
  */
 void clear_current_working_directory()
 {
-    // We're setting the path to an empty string and the cluster to -1.
-    memset(current_working_directory->path, '\0', sizeof(current_working_directory->path));
-    current_working_directory->cluster = -1;
+    if (cwd != NULL) {
+        memset(cwd, 0, 255);
+    }
 }

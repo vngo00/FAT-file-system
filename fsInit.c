@@ -1,20 +1,20 @@
 /**************************************************************
-* Class:  CSC-415-01 Summer 2023
-* Names: Tyler Fulinara, Rafael Sant Ana Leitao, Anthony Silva , Vinh Ngo Rafael Fabiani
-* Student IDs: 922002234, 920984945,
+ * Class:  CSC-415-01 Summer 2023
+ * Names: Tyler Fulinara, Rafael Sant Ana Leitao, Anthony Silva , Vinh Ngo Rafael Fabiani
+ * Student IDs: 922002234, 920984945,
 922907645, 921919541,
 922965105
-* GitHub Name: rf922
-* Group Name: MKFS
-* Project: Basic File System
-*
-* File: fsInit.c
-*
-* Description: Main driver for file system assignment.
-*
-* This file is where you will start and initialize your system
-*
-**************************************************************/
+ * GitHub Name: rf922
+ * Group Name: MKFS
+ * Project: Basic File System
+ *
+ * File: fsInit.c
+ *
+ * Description: Main driver for file system assignment.
+ *
+ * This file is where you will start and initialize your system
+ *
+ **************************************************************/
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -32,7 +32,6 @@ int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
 
     int vcb_check = 0;
 
-    // Initialize Volume Control Block. It returns -1 if there was an error during read, and 0 otherwise.
     if (!vcb_is_init()) {
         printf("[ FS INIT ] : VCB not initialized. Attempting initialization...\n");
 
@@ -61,7 +60,7 @@ int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
             return vcb_check;
         }
         fat_read_from_disk();
-        int root_check = load_directory(block_size, root_directory);
+        int root_check = load_root();
 
         if (root_check == -1) {
             printf("[ VCB INIT ] : Failed to load root directory.\n");
@@ -71,39 +70,12 @@ int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
 
     }
 
-    Current_Working_Directory* current_wd = malloc(sizeof (Current_Working_Directory));
-    if (!current_wd) {
-        printf("[ VCB INIT ] : Failed to allocate memory for current working directory.\n");
-        free(vcb);
-        return -1;
-    }
-
-    current_working_directory = current_wd;
-    int ret_val = fs_setcwd("/");
-    if (ret_val != 0) {
-        printf("[ FS INIT ] : Failed to set current working directory.\n");
-        free(vcb);
-        free(current_wd);
-        return ret_val;
-    }
-
-
-
-    /*
-     int root_check = init_directory(block_size, NULL, "/");
-
-     if (root_check == -1) {
-         return root_check;
-     }
-     */
-
     return 0;
 }
 
 void exitFileSystem() {
     printf("System exiting\n");
 
-    // Release memory of all structures loaded on system start
     free(vcb);
     vcb = NULL;
 
@@ -113,6 +85,6 @@ void exitFileSystem() {
     free(root_directory);
     root_directory = NULL;
 
-    free(current_working_directory);
-    current_working_directory = NULL;
+    free(cwd);
+    cwd = NULL;
 }

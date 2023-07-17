@@ -27,19 +27,15 @@
 
 typedef struct Directory_Entry {
     char dir_name[NAME_MAX_LENGTH];
-	uint32_t dir_attr;
-	uint32_t dir_first_cluster;
-	uint32_t dir_file_size;
-	uint32_t entries_array_location;
+    char path[255];
+    uint32_t dir_attr;
+    uint32_t dir_first_cluster;
+    uint32_t dir_file_size;
+    uint32_t entries_array_location;
 } Directory_Entry;
 
-typedef struct Current_Working_Directory {
-	char path[DIRECTORY_MAX_LENGTH];
-	uint32_t cluster;
-} Current_Working_Directory;
-
-extern Current_Working_Directory* current_working_directory;
 extern Directory_Entry* root_directory;
+extern char * cwd;
 
 /*
 * This function initializes a new directory. 

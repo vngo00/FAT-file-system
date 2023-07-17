@@ -78,7 +78,7 @@ int fs_isDir(char * pathname);		//return 1 if directory, 0 otherwise
 int fs_delete(char* filename);	//removes a file
 
 // extra handlers 
-void build_absolute_path(char * buf, const char * pathname);
+char* build_absolute_path(const char *pathname) ;
 
 // This function checks whether the given attribute represents a directory.
 // It takes an attribute as input and returns 1 if the attribute 
@@ -91,7 +91,7 @@ int check_directory_attribute(int attribute);
 // If a matching directory entry is found, it allocates memory for a new directory entry,
 // copies the matching entry into it, and returns the new directory entry.
 // If no match is found, it returns NULL.
-Directory_Entry* get_target_directory(Directory_Entry* current_dir_ent, char* token, int pathIndex, int pathLength);
+Directory_Entry* get_target_directory(Directory_Entry* current_dir_ent, char* token) ;
 
 
 // This function parses a directory path and finds the corresponding directory entry.
@@ -100,7 +100,10 @@ Directory_Entry* get_target_directory(Directory_Entry* current_dir_ent, char* to
 // Otherwise, it searches for the directory entry that matches the path.
 // If a matching directory entry is found, it returns a pointer to the directory entry.
 // If no matching directory entry is found or an error occurs, it returns NULL.
-Directory_Entry* parse_directory_path(const char* path, int target);
+Directory_Entry* parse_directory_path(const char* path);
+
+int add_entry_to_parent(Directory_Entry* parent_directory, Directory_Entry* new_directory, char* new_path);
+
 
 // This is the strucutre that is filled in from a call to fs_stat
 struct fs_stat
