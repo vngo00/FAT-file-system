@@ -300,3 +300,38 @@ int fs_mkdir(const char *pathname, mode_t mode) {
     return 0;
 }
 
+int fs_isFile(char *filename) {
+    Directory_Entry* directory_entry = parse_directory_path(filename);
+    if (directory_entry == NULL) {
+        printf("[ FS ISFILE ] : File '%s' not found.\n", filename);
+        return 0;
+    }
+
+    int is_file = !check_directory_attribute(directory_entry->dir_attr);
+    if (is_file) {
+        printf("[ FS ISFILE ] : File '%s' is a regular file.\n", filename);
+    } else {
+        printf("[ FS ISFILE ] : File '%s' is not a regular file.\n", filename);
+    }
+
+    free(directory_entry);
+    return is_file;
+}
+
+int fs_isDir(char *pathname) {
+    Directory_Entry* directory_entry = parse_directory_path(pathname);
+    if (directory_entry == NULL) {
+        printf("[ FS ISDIR ] : Directory '%s' not found.\n", pathname);
+        return 0;
+    }
+
+    int is_dir = check_directory_attribute(directory_entry->dir_attr);
+    if (is_dir) {
+        printf("[ FS ISDIR ] : Directory '%s' is a directory.\n", pathname);
+    } else {
+        printf("[ FS ISDIR ] : Directory '%s' is not a directory.\n", pathname);
+    }
+
+    free(directory_entry);
+    return is_dir;
+}
