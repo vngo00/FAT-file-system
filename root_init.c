@@ -26,6 +26,7 @@
 // Initialize the current working directory and root directory
 Directory_Entry *root_directory = NULL;
 char * cwd = NULL;
+Directory_Entry *current_directory = NULL;
 
 
 /*
@@ -148,6 +149,7 @@ int load_root(){
     cwd = malloc(NAME_MAX_LENGTH);
     cwd[0] = '/';
         cwd[1] = '\0';
+	current_directory = root_directory;
     return 0;
 }
 
