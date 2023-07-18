@@ -26,6 +26,9 @@
 #include "mfs.h"
 #include "fsLow.h"
 
+
+#define IS_ACTIVE 	1<<27 // sixth bit of the dir_attr in DE will indicate whether in use or not
+#define IS_DIR		1<<28 // fifth bit indicating whether DE is a directory		
 extern int entries_per_dir; // need to know the number of the entries per directory
 
 
@@ -404,5 +407,34 @@ fdDir * fs_opendir(const char *pathname) {
 	
 	return dir;
 	*/
+	return NULL;
+}
+
+
+/*
+ * helper functions for readdir
+ */
+int isUsed(Directory_Entry entry) {
+	return entry.dir_attr & IS_ACTIVE;
+}
+int isDir(Directory_Entry entry) {
+	return entry.dir_attr & IS_DIR;
+}
+
+struct fs_diriteminfo *fs_readdir(fdDir *dirp) {
+	if (dirp == NULL) return NULL;
+
+	for (int i = dirp->dirEntryPosition; i < dirp->d_reclen; i++) {
+		dirp->dirEntryPosition++;
+		if (isUsed(dirp->directory[i])) {
+			strcpy(dirp->directory[i].dir_name, dirp->di->d_name);
+			if(isDir(dirp->directory[i]))
+				dirp->di->fileType = DT_DIR;
+			else
+				dirp->di->fileType = DT_REG;	
+
+		return dirp->di;
+		}
+	}
 	return NULL;
 }
