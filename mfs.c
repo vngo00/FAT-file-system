@@ -356,8 +356,13 @@ int fs_delete(char* filename) {
 	release_blocks(entry.parent[entry.index]->dir_first_cluster);
 	
 	// need to clear out the metadata of the file from the directory entry;
-	// for now i will jsut point it to null
-	entry.parent[entry.index] = NULL;
+
+	entry.parent[entry.index]->dir_name ="\0";
+	entry.parent[entry.index]->path = "\0";
+	entry.parent[entry.index]->dir_attr = 0;
+	entry.parent[entry.index]->dir_first_cluster = 0;
+	entry.parent[entry.index]->dir_file_size = 0;
+	entry.parent[entry.index]->entries_array_location = 0;
 
 	return 0;	
 }
