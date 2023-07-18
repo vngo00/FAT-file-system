@@ -61,6 +61,17 @@ typedef struct
 	struct fs_diriteminfo * di;		/* Pointer to the structure you return from read */
 	} fdDir;
 
+// helper structure for parse path function
+// this structure contain the directory entry of the parent
+// and the index to the target directory entry
+typedef struct
+	{
+		Directory_Entry *parent;
+		int index;
+	} parsed_entry;
+
+
+
 // Key directory functions
 int fs_mkdir(const char *pathname, mode_t mode);
 int fs_rmdir(const char *pathname);

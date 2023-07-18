@@ -335,3 +335,30 @@ int fs_isDir(char *pathname) {
     free(directory_entry);
     return is_dir;
 }
+
+
+int fs_delete(char* filename) {
+	// if not file do no delet
+	if (fs_isDir(filename) == 1){
+		printf("Can't delete a directory\n");
+	}
+	
+	// grab the directory entry of the file
+	parsed_entry entry;
+	parse_directory_path(filename, &entry);
+	
+	if (entry.index == -1){
+		printf("not a valid file\n");
+		return -1;
+	}
+
+	// free the blocks
+	release_blocks(entry.parent[entry.index]->dir_first_cluster);
+	
+	// need to clear out the metadata of the file from the directory entry;
+	// for now i will jsut point it to null
+	entry.parent[entry.index] = NULL;
+
+	return 0;	
+}
+
