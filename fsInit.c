@@ -25,6 +25,9 @@
 #include "mfs.h"
 #include "FAT.h"
 
+
+int entries_per_dir;
+
 int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
     printf("Initializing File System with %ld blocks with a block size of %ld\n", number_of_blocks, block_size);
 
@@ -69,6 +72,9 @@ int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
         }
 
     }
+	
+    // used in mfs.c for fs_opendir function
+    entries_per_dir = vcb->entries_per_dir;
 
     return 0;
 }

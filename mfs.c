@@ -26,6 +26,9 @@
 #include "mfs.h"
 #include "fsLow.h"
 
+extern int entries_per_dir; // need to know the number of the entries per directory
+
+
 // This function builds an absolute path from the current directory and the provided pathname.
 char* build_absolute_path(const char *pathname) {
     static char buf[255];
@@ -367,3 +370,34 @@ int fs_delete(char* filename) {
 	return 0;	
 }
 
+
+
+/*
+ *
+ *
+ * Directory iteration functions
+ *
+ */
+//
+//return directory descriptor which will keep the information
+//of a target directory
+fdDir * fs_opendir(const char *pathname) {
+	// check if pathname is a directory or a file
+	if (fs_isFile(pathname) == 1) {
+		printf("not a directory\n");
+		return NULL;
+	}
+
+	parsed_entry entry;
+	if (parse_directory_path(pathname, &entry) == -1) {
+		printf ("invalid pathname\n");
+		return NULL;
+	}
+	
+	fdDir * dir = malloc(sizeof(fdDir));
+	dir->d_reclen = entrie_per_dir; // the total number of entries;
+	dir->dirEntryPosition = 0;			// current position of entry in directory  
+	dir->directory = entry.parent[index];		// target directory that the caller wants;
+
+	return dir;
+}
