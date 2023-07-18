@@ -26,9 +26,7 @@
 #include "mfs.h"
 #include "fsLow.h"
 
-
-#define IS_ACTIVE 	1<<27 // sixth bit of the dir_attr in DE will indicate whether in use or not
-#define IS_DIR		1<<28 // fifth bit indicating whether DE is a directory		
+	
 extern int entries_per_dir; // need to know the number of the entries per directory
 
 
