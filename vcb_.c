@@ -52,7 +52,6 @@ int vcb_init(uint32_t number_of_blocks, uint16_t block_size) {
     vcb->entries_per_dir = 128;
     vcb->bytes_per_block = 512;
 
-    entries_per_dir = vcb->entries_per_dir;
 
     printf("[ VCB INIT ] : Writing VCB to disk, root cluster: %d\n", vcb->root_cluster);
     if (LBAwrite(vcb, 1, VCB_BLOCK_LOCATION) != 1) {

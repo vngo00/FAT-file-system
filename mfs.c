@@ -341,11 +341,12 @@ int fs_isDir(char *pathname) {
 
 
 int fs_delete(char* filename) {
+	
 	// if not file do no delet
 	if (fs_isDir(filename) == 1){
 		printf("Can't delete a directory\n");
 	}
-	
+	/*
 	// grab the directory entry of the file
 	parsed_entry entry;
 	parse_directory_path(filename, &entry);
@@ -366,7 +367,9 @@ int fs_delete(char* filename) {
 	entry.parent[entry.index]->dir_first_cluster = 0;
 	entry.parent[entry.index]->dir_file_size = 0;
 	entry.parent[entry.index]->entries_array_location = 0;
+	*/
 
+	// need parse path to be done fisr
 	return 0;	
 }
 
@@ -387,7 +390,7 @@ fdDir * fs_opendir(const char *pathname) {
 		printf("not a directory\n");
 		return NULL;
 	}
-
+	/*
 	parsed_entry entry;
 	if (parse_directory_path(pathname, &entry) == -1) {
 		printf ("invalid pathname\n");
@@ -398,6 +401,8 @@ fdDir * fs_opendir(const char *pathname) {
 	dir->d_reclen = entrie_per_dir; // the total number of entries;
 	dir->dirEntryPosition = 0;			// current position of entry in directory  
 	dir->directory = entry.parent[index];		// target directory that the caller wants;
-
+	
 	return dir;
+	*/
+	return NULL;
 }
