@@ -306,41 +306,64 @@ int fs_mkdir(const char *pathname, mode_t mode) {
     return 0;
 }
 
+
+// Function to check if the given filename corresponds to a regular file
 int fs_isFile(char *filename) {
+    // Parse the directory path to get the directory entry corresponding to the filename
     Directory_Entry* directory_entry = parse_directory_path(filename);
+
+    // If the directory entry is NULL, it means the file was not found
     if (directory_entry == NULL) {
+        // Print a message stating that the file was not found
         printf("[ FS ISFILE ] : File '%s' not found.\n", filename);
+        // Return 0 indicating that the file does not exist
         return 0;
     }
 
-    int is_file = !check_directory_attribute(directory_entry->dir_attr);
+    // Check if the directory attribute of the entry is not a directory
+    // If returns 1, it's a file, otherwise it's a directory
+    int is_file = !(directory_entry->dir_attr & IS_DIR);
     if (is_file) {
+        // print a message stating that it's a regular file
         printf("[ FS ISFILE ] : File '%s' is a regular file.\n", filename);
     } else {
+        // print a message stating that it's not a regular file
         printf("[ FS ISFILE ] : File '%s' is not a regular file.\n", filename);
     }
-
+    // Deallocate the memory allocated to the directory entry to avoid memory leaks
     free(directory_entry);
+    // Returns the status of whether the entity is a file or not
     return is_file;
 }
 
+// Function to check if the given pathname corresponds to a directory or not
 int fs_isDir(char *pathname) {
+    // Parse the directory path to get the directory entry corresponding to the pathname
     Directory_Entry* directory_entry = parse_directory_path(pathname);
+    // If the directory entry is NULL, it means the directory was not found
     if (directory_entry == NULL) {
+        // Print a message stating that the directory was not found
         printf("[ FS ISDIR ] : Directory '%s' not found.\n", pathname);
+        // Returns 0 indicating that the directory does not exist
         return 0;
     }
 
-    int is_dir = check_directory_attribute(directory_entry->dir_attr);
+    // Check if the directory attribute of the entry is a directory
+    // If the result is non-zero, it's a directory
+    int is_dir = directory_entry->dir_attr & IS_DIR;
     if (is_dir) {
+        // prints a message stating that it's a directory
         printf("[ FS ISDIR ] : Directory '%s' is a directory.\n", pathname);
     } else {
+        // prints a message stating that it's not a directory
         printf("[ FS ISDIR ] : Directory '%s' is not a directory.\n", pathname);
     }
-
+    // Deallocate the memory allocated to the directory entry to avoid memory leaks
     free(directory_entry);
-    return is_dir;
+    // A non-zero result indicates it's a directory
+    return is_dir != 0;
 }
+
 
 
 int fs_delete(char* filename) {
