@@ -213,3 +213,48 @@ void clear_current_working_directory()
         memset(cwd, 0, 255);
     }
 }
+
+
+
+int dir_init(int block_size, Directory_Entry *parent, char *name) {
+	int min_bytes_needed = vcb->entries_per_dir * sizeof(Directory_Entry);
+	int blocks_need = (min_bytes_needed + block_size -1) / block_size;
+	int malloc_bytes = blocks_need * block_size;
+	Directory_Entry * entries = malloc(malloc_bytes);
+
+	for (int i = 2; i < vcb->entries_per_dir; i++) {
+		// init entries
+		strcpy(entries[i].dir_name, "");
+	}
+	
+	// initialze the directory itself
+	strcpy(entries[0].dir_name, ".");
+	entries[0].dir_file_size = min_bytes_needed;
+	entries[0].dir_first_cluster = allocate_blocks(blocks_need); 
+	entries[0].dir_attr |= (IS_ACTIVE | IS_DIR);
+//	 entries[0].path ?  
+//	 entries_array_location ? 
+
+	if (parent == NULL) { // root here
+		parent = entries;
+	}
+
+	strcpy(entries[1].dir_name, "..");
+	entries[1].dir_file_size = parent[0].dir_file_size;
+	entries[1].dir_first_cluster = parent[0].dir_first_cluster;
+	
+	int start_block = entries[0].dir_first_cluster;
+	int count_block = 0;
+	// since FAT is the main mechanism for free space management
+	// blocks may not be contiguous so we have to write data
+	// to disk block by block
+	while (start_block != -1 && count_block != blocks_need){
+		LBAwrite(entries,1, start_block);
+		start_block = get_next_block(start_block);
+		count_block++;
+	}
+
+	return 0;
+
+}
+

@@ -25,6 +25,9 @@
 #define NAME_MAX_LENGTH	11 //only support short names
 #define DIRECTORY_MAX_LENGTH	64
 
+#define IS_ACTIVE 	1<<27 // sixth bit of the dir_attr in DE will indicate whether in use or not
+#define IS_DIR		1<<28 // fifth bit indicating whether DE is a directory	
+
 typedef struct Directory_Entry {
     char dir_name[NAME_MAX_LENGTH];
     char path[255];
@@ -56,4 +59,7 @@ void clear_current_working_directory();
 */
 int load_directory(uint64_t block_size, Directory_Entry* directory);
 
+
+
+int load_root(void);
 #endif // _ROOT_INIT_H
