@@ -216,7 +216,7 @@ void clear_current_working_directory()
 
 
 
-int dir_init(int block_size, Directory_Entry *parent, char *name) {
+Directory_Entry * dir_init(int block_size, Directory_Entry *parent, char *name) {
 	int min_bytes_needed = vcb->entries_per_dir * sizeof(Directory_Entry);
 	int blocks_need = (min_bytes_needed + block_size -1) / block_size;
 	int malloc_bytes = blocks_need * block_size;
@@ -263,7 +263,7 @@ int dir_init(int block_size, Directory_Entry *parent, char *name) {
 		count_block++;
 	}
 
-	return 0;
+	return entries;
 
 }
 
