@@ -232,17 +232,26 @@ int dir_init(int block_size, Directory_Entry *parent, char *name) {
 	entries[0].dir_file_size = min_bytes_needed;
 	entries[0].dir_first_cluster = allocate_blocks(blocks_need); 
 	entries[0].dir_attr |= (IS_ACTIVE | IS_DIR);
-//	 entries[0].path ?  
+
 //	 entries_array_location ? 
 
 	if (parent == NULL) { // root here
 		parent = entries;
 	}
+	
+	// concat the parenth path to the child's name
+	// to make the child's path
+	char path[256];
+	strcpy(path, parent[0].path);
+	strcat(path, "/");
+	strcat(path, name);
+	strcpy(entries[0].path, path);
 
 	strcpy(entries[1].dir_name, "..");
 	entries[1].dir_file_size = parent[0].dir_file_size;
 	entries[1].dir_first_cluster = parent[0].dir_first_cluster;
 	
+	// commit data to disk
 	int start_block = entries[0].dir_first_cluster;
 	int count_block = 0;
 	// since FAT is the main mechanism for free space management
