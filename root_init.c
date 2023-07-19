@@ -68,9 +68,19 @@ uint32_t init_directory(uint64_t block_size, Directory_Entry* parent_directory, 
         free(new_directory);
         return -1;
     }
+Directory_Entry dot_entry, dot_dot_entry;
 
-    Directory_Entry dot_entry = { .dir_name = ".", .dir_attr = new_directory->dir_attr, .dir_first_cluster = first_cluster, .dir_file_size = new_directory->dir_file_size, .entries_array_location = new_directory->entries_array_location };
-    Directory_Entry dot_dot_entry = { .dir_name = "..", .dir_attr = new_directory->dir_attr, .dir_first_cluster = first_cluster, .dir_file_size = new_directory->dir_file_size, .entries_array_location = new_directory->entries_array_location };
+strncpy(dot_entry.dir_name, ".", NAME_MAX_LENGTH);
+dot_entry.dir_attr = new_directory->dir_attr;
+dot_entry.dir_first_cluster = first_cluster;
+dot_entry.dir_file_size = new_directory->dir_file_size;
+dot_entry.entries_array_location = new_directory->entries_array_location;
+
+strncpy(dot_dot_entry.dir_name, "..", NAME_MAX_LENGTH);
+dot_dot_entry.dir_attr = new_directory->dir_attr;
+dot_dot_entry.dir_first_cluster = first_cluster;
+dot_dot_entry.dir_file_size = new_directory->dir_file_size;
+dot_dot_entry.entries_array_location = new_directory->entries_array_location;
 
     entries[0] = dot_entry;
     entries[1] = dot_dot_entry;
