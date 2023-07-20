@@ -15,10 +15,14 @@
 #ifndef __FAT_H__
 #define __FAT_H__
 
+//Starting block of the FAT
 #define FAT_BLOCK_START_LOCATION 1
+//Marker for Free Block, Reserved Block, and EOF Block
+#define FREE_BLOCK 0x00000000
+#define RESERVED_BLOCK 0xFFFFFFFF
+#define EOF_BLOCK 0xFFFFFFFE
 
 extern int * fat_array; // keep a copy of FAT while program is running
-extern int blocks_per_fat;
 
 
 // upfates the FAT on disk
