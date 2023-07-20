@@ -65,7 +65,7 @@ int fat_init(uint64_t number_of_blocks, uint64_t block_size) {
             //            printf("[ FAT_INIT ] : Setting EOF_BLOCK for block %d.\n", i);
             continue;
         }
-        if (i <= 154) {
+        if (i <= 153) {
             fat_array[i] = RESERVED_BLOCK;
             //                printf("[ FAT_INIT ] : Setting RESERVED_BLOCK for block %d.\n", i);
         } else {
@@ -109,13 +109,14 @@ int fat_read_from_disk() {
  * returns its index otherwise returns -1 indicating none were found.
  */
 uint32_t find_free_block() {
-    printf("[ FIND FREE BLOCK ] : Searching for a free block...\n");
+//    printf("[ FIND FREE BLOCK ] : Searching for a free block...\n");
     int block_index = -1;
 
     for (int i = vcb->reserved_blocks_count; i < vcb->total_blocks_32; i++) {
         if (fat_array[i] == FREE_BLOCK) {
-            printf("[ FIND FREE BLOCK ] : Free block found at index %d\n", i);
+   //        printf("[ FIND FREE BLOCK ] : Free block found at index %d\n", i);
             block_index = i;
+            fat_array[i] = RESERVED_BLOCK;
             return block_index;
         }
     }
@@ -132,20 +133,20 @@ uint32_t allocate_blocks(int blocks_needed) {
     int blocks = 0;
 
     while (blocks < blocks_needed) {
-        printf("[ ALLOCATE_BLOCKS ] : Searching for free block.\n");
+//        printf("[ ALLOCATE_BLOCKS ] : Searching for free block.\n");
         int free_block_index = find_free_block();
         if (free_block_index > -1) {
-            printf("[ ALLOCATE_BLOCKS ] : Found free block at index %d.\n", free_block_index);
+//            printf("[ ALLOCATE_BLOCKS ] : Found free block at index %d.\n", free_block_index);
             blocks_found[blocks] = free_block_index;
             blocks++;
         }
     }
     if (blocks_needed != 1) {
         for (int i = 0; i < blocks; i++) {
-            printf("[ ALLOCATE_BLOCKS ] : Linking block at index %d to block at index %d.\n", blocks_found[i], blocks_found[i + 1]);
+       //     printf("[ ALLOCATE_BLOCKS ] : Linking block at index %d to block at index %d.\n", blocks_found[i], blocks_found[i + 1]);
             fat_array[blocks_found[i]] = fat_array[blocks_found[i + 1]]; //linking the blocks
             if (i == blocks - 1) {
-                printf("[ ALLOCATE_BLOCKS ] : Assigning EOF_BLOCK at index %d.\n", blocks_found[0]);
+        //        printf("[ ALLOCATE_BLOCKS ] : Assigning EOF_BLOCK at index %d.\n", blocks_found[0]);
                 fat_array[blocks_found[i]] = EOF_BLOCK;
 
             }

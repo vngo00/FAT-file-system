@@ -48,7 +48,7 @@ int vcb_init(uint32_t number_of_blocks, uint16_t block_size) {
     vcb->total_blocks_32 = 19531;
     vcb->FAT_size_32 = 153;
     vcb->root_cluster = 154;
-    vcb->reserved_blocks_count = 155;
+    vcb->reserved_blocks_count = 154;
 
     vcb->free_space = 19531 - 155;
     vcb->magic_number = MAGIC_NUMBER;
