@@ -31,15 +31,6 @@ Directory_Entry *current_directory = NULL;
 
 
 
-//
-// helper functions
-//
-
-// help read a directory from disk
-int read_from_disk(void * buffer, int start_block, int blocks_need, int block_size);
-
-// help write a directory to disk
-int write_to_disk(void * buffer, int start_block, int blocks_need, int block_size);
 
 /*
  * Function to initialize a new directory.

@@ -58,7 +58,13 @@ void clear_current_working_directory();
 */
 int load_directory(uint64_t block_size, Directory_Entry* directory);
 
-
-
 int load_root(void);
+
+// help read a directory from disk
+int read_from_disk(void * buffer, int start_block, int blocks_need, int block_size);
+
+// help write a direcotry to disk
+int write_to_disk(void * buffer, int start_block, int blocks_need, int block_size);
+
+
 #endif // _ROOT_INIT_H
