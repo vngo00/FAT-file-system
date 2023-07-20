@@ -439,8 +439,9 @@ fdDir * fs_opendir(const char *pathname) {
 	dir->d_reclen = entrie_per_dir; // the total number of entries;
 	dir->dirEntryPosition = 0;			// current position of entry in directory  
 	dir->directory = entry.parent[index];		// target directory that the caller wants;
-	
+	dir->di = malloc(sizeof(struct fs_diriteminfo));
 	return dir;
+
 	*/
 	return NULL;
 }
@@ -472,4 +473,30 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp) {
 		}
 	}
 	return NULL;
+}
+
+int fs_closeddir(fdDir *dirp) {
+	if (dirp == NULL){
+		printf("dirp is null\n");
+		return -1;
+	}
+	free(dirp->di);
+	dirp->di = NULL;
+	free(dirp);
+	dirp = NULL;
+
+	return 0;
+}
+
+
+
+int fs_stat(const char *path, struct fs_stat *buf) {
+
+
+
+
+
+
+
+	return 0;
 }
