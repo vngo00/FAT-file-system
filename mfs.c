@@ -149,6 +149,7 @@ int check_directory_attribute(int attribute) {
     return ((attribute >> 4) & 1);
 }
 
+
 // This function searches for a directory entry that matches the provided token (directory name)
 // within the given array of directory entries (current_dir_ent).
 // It iterates through each directory entry in the current directory until a match is found.
@@ -164,13 +165,26 @@ Directory_Entry* get_target_directory(Directory_Entry* current_dir_ent, char* to
     }
     printf("[ GET TARGET DIRECTORY ] : Allocated memory for directory entries\n");
 
-    int readResult = LBAread(entries, 1, current_dir_ent->entries_array_location);
+    //int readResult = LBAread(entries, 1, current_dir_ent->entries_array_location);
+    //
+    //
+    //heads up entries_array_location is rem,oved
+    //
+    int readResult = -1;
+    //
+    //!!!! heads up entries_array_location removed
+    //
+    //
+
+
+
+
     if (readResult < 0) {
         printf("[ GET TARGET DIRECTORY ] : LBAread failed.\n");
         free(entries);
         return NULL;
     }
-    printf("[ GET TARGET DIRECTORY ] : Read entries from disk at location: %d\n", current_dir_ent->entries_array_location);
+    //printf("[ GET TARGET DIRECTORY ] : Read entries from disk at location: %d\n", current_dir_ent->entries_array_location);
 
     Directory_Entry *retVal = NULL;
 

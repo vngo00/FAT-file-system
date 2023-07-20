@@ -24,17 +24,16 @@
 
 #define NAME_MAX_LENGTH	11 //only support short names
 #define DIRECTORY_MAX_LENGTH	64
-
+#define MAX_PATH_LENGTH		255
 #define IS_ACTIVE 	1<<27 // sixth bit of the dir_attr in DE will indicate whether in use or not
 #define IS_DIR		1<<28 // fifth bit indicating whether DE is a directory	
 
 typedef struct Directory_Entry {
     char dir_name[NAME_MAX_LENGTH];
-    char path[255];
+    char path[MAX_PATH_LENGTH];
     uint32_t dir_attr;
     uint32_t dir_first_cluster;
     uint32_t dir_file_size;
-    uint32_t entries_array_location;
 } Directory_Entry;
 
 extern Directory_Entry* root_directory;
@@ -45,7 +44,7 @@ extern char * cwd;
 * If a parent directory is provided, it creates a new directory under it. 
 * If not, the directory is created in the root cluster.
 */
-uint32_t init_directory(uint64_t block_size, Directory_Entry* parent_directory, char* dir_name);
+Directory_Entry * init_directory(uint64_t block_size, Directory_Entry* parent_directory, char* name);
 
 /*
 * This function resets the current working directory to its default state. 

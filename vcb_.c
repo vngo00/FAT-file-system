@@ -25,6 +25,9 @@
 
 
 VCB* vcb = NULL;
+int entries_per_dir = 128;
+
+
 int vcb_init(uint32_t number_of_blocks, uint16_t block_size) {
     printf("[ VCB INIT ] : Initializing Volume Control Block...\n");
 
@@ -50,7 +53,7 @@ int vcb_init(uint32_t number_of_blocks, uint16_t block_size) {
     vcb->free_space = 19531 - 155;
     vcb->magic_number = MAGIC_NUMBER;
     vcb->entries_per_dir = 128;
-    vcb->bytes_per_block = 512;
+    vcb->bytes_per_block = block_size;
 
 
     printf("[ VCB INIT ] : Writing VCB to disk, root cluster: %d\n", vcb->root_cluster);

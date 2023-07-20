@@ -25,12 +25,13 @@
 #include "mfs.h"
 #include "FAT.h"
 
+int bytes_per_block;
 
-int entries_per_dir;
+extern Directory_Entry *root_directory;
 
 int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
     printf("Initializing File System with %ld blocks with a block size of %ld\n", number_of_blocks, block_size);
-
+   bytes_per_block = block_size;
     /* TODO: Add any code you need to initialize your file system. */
 
     int vcb_check = 0;
@@ -48,8 +49,8 @@ int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
         if (fat_check == -1) {
             return fat_check;
         }
-        int root_check = init_directory(block_size, NULL, "/");
-        if (root_check == -1) {
+        root_directory = init_directory(block_size, NULL, "");
+        if (root_directory == NULL) {
             printf("[ FS INIT ] : Failed to initialize root directory.\n");
 
         }
@@ -73,8 +74,6 @@ int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
 
     }
 	
-    // used in mfs.c for fs_opendir function
-    entries_per_dir = vcb->entries_per_dir;
 
     return 0;
 }
