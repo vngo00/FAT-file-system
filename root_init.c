@@ -339,13 +339,13 @@ int read_from_disk(void * buffer, int start_block, int blocks_need, int block_si
 	int count_block = 0;
 	int offset = 0;
 
-	while (start_block != -1 && count_block != blocks_need) {
+	while (start_block != EOF_BLOCK && count_block != blocks_need) {
 		if (LBAread(buffer + offset, 1, start_block) != 1){
 			printf("failed to read from disk\n");
 			return -1;
 		}
 		start_block++;
-		//	start_block = get_next_block(start_block);
+		//start_block = get_next_block(start_block);
 		count_block++;
 		offset += block_size;
 	}
@@ -356,8 +356,9 @@ int write_to_disk(void * buffer, int start_block, int blocks_need, int block_siz
 	int count_block = 0;
 	int offset = 0;
 
-	while (start_block != -1 && count_block != blocks_need) {
+	while (start_block != EOF_BLOCK && count_block != blocks_need) {
 		if (LBAwrite(buffer + offset, 1, start_block) != 1){
+			printf("%d\n", EOF_BLOCK);
 			printf("failed to write to disk\n");
 			return -1;
 		}
