@@ -129,34 +129,50 @@ uint32_t find_free_block() {
  */
 uint32_t allocate_blocks(int blocks_needed) {
     printf("[ ALLOCATE_BLOCKS ] : Allocating blocks_needed = %d.\n", blocks_needed);
-    int *blocks_found = malloc(blocks_needed * sizeof (uint32_t));
+
+    if (blocks_needed <= 0 || blocks_needed > get_total_free_blocks()) {
+        printf("[ ALLOCATE_BLOCKS ] : Invalid blocks_needed.\n");
+        return -1;
+    }
+
+    uint32_t *blocks_found = (uint32_t *)malloc(blocks_needed * sizeof(uint32_t));
+    if (blocks_found == NULL) {
+        printf("[ ALLOCATE_BLOCKS ] : Failed to allocate memory.\n");
+        return -1;
+    }
+
     int blocks = 0;
-
     while (blocks < blocks_needed) {
-//        printf("[ ALLOCATE_BLOCKS ] : Searching for free block.\n");
         int free_block_index = find_free_block();
-        if (free_block_index > -1) {
-//            printf("[ ALLOCATE_BLOCKS ] : Found free block at index %d.\n", free_block_index);
-            blocks_found[blocks] = free_block_index;
-            blocks++;
+        if (free_block_index == -1) {
+            printf("[ ALLOCATE_BLOCKS ] : No more free blocks.\n");
+            free(blocks_found);
+            return -1;
         }
+        blocks_found[blocks] = free_block_index;
+        blocks++;
     }
-    if (blocks_needed != 1) {
-        for (int i = 0; i < blocks; i++) {
-       //     printf("[ ALLOCATE_BLOCKS ] : Linking block at index %d to block at index %d.\n", blocks_found[i], blocks_found[i + 1]);
-            fat_array[blocks_found[i]] = fat_array[blocks_found[i + 1]]; //linking the blocks
-            if (i == blocks - 1) {
-        //        printf("[ ALLOCATE_BLOCKS ] : Assigning EOF_BLOCK at index %d.\n", blocks_found[0]);
-                fat_array[blocks_found[i]] = EOF_BLOCK;
 
+    uint32_t start_block = blocks_found[0];
+
+    if (blocks_needed != 1) {
+        for (int i = 0; i < blocks - 1; i++) { 
+            if (blocks_found[i] == vcb->total_blocks_32 - 1) {
+                printf("[ ALLOCATE_BLOCKS ] : Last block in FAT, can't link to the next block.\n");
+                break;
             }
+            fat_array[blocks_found[i]] = blocks_found[i + 1];
         }
     }
+
+    fat_array[blocks_found[blocks - 1]] = EOF_BLOCK;
 
     printf("[ ALLOCATE_BLOCKS ] : Updating FAT.\n");
     update_fat_on_disk();
 
-    return blocks_found[0];
+    free(blocks_found);
+
+    return start_block;
 }
 
 /*
