@@ -79,6 +79,9 @@ char* build_absolute_path(const char *pathname) {
 // This function changes the current working directory to the specified path.
 // It allows us to navigate to a different directory within the file system.
 char* fs_getcwd(char * path, size_t size) {
+	
+
+	/*
     printf("[ FS GETCWD ] : Attempting to get current working directory...\n");
 
     if (cwd == NULL || cwd[0] == '\0') {
@@ -94,8 +97,9 @@ char* fs_getcwd(char * path, size_t size) {
     }
 
     printf("[ FS GETCWD ] : Current working directory: %s\n", cwd);
+	*/
 
-    return cwd;
+    return strdup(current_directory[0].path);
 }
 
 int fs_setcwd(char *path) {

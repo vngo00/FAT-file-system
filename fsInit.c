@@ -50,6 +50,7 @@ int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
             return fat_check;
         }
         root_directory = init_directory(block_size, NULL, "");
+	current_directory = root_directory;
         if (root_directory == NULL) {
             printf("[ FS INIT ] : Failed to initialize root directory.\n");
 

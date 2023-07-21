@@ -38,7 +38,7 @@ typedef struct Directory_Entry {
 
 extern Directory_Entry* root_directory;
 extern char * cwd;
-
+extern Directory_Entry * current_directory;
 /*
 * This function initializes a new directory. 
 * If a parent directory is provided, it creates a new directory under it. 

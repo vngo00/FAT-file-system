@@ -276,7 +276,7 @@ Directory_Entry * init_directory(uint64_t block_size, Directory_Entry *parent, c
 	// concat the parenth path to the child's name
 	// to make the child's path
 	strcpy(entries[0].path, parent[0].path);
-	strcat(entries[0].path, "/root");
+	strcat(entries[0].path, "/");
 	strcat(entries[0].path, name);
 	
 	strcpy(entries[0].dir_name, ".");
