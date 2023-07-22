@@ -344,8 +344,8 @@ int read_from_disk(void * buffer, int start_block, int blocks_need, int block_si
 			printf("failed to read from disk\n");
 			return -1;
 		}
-		start_block++;
-		//start_block = get_next_block(start_block);
+		//start_block++;
+		start_block = get_next_block(start_block);
 		count_block++;
 		offset += block_size;
 	}
@@ -362,8 +362,8 @@ int write_to_disk(void * buffer, int start_block, int blocks_need, int block_siz
 			printf("failed to write to disk\n");
 			return -1;
 		}
-		start_block++;
-		//start_block = get_next_block(start_block); // testing to see if it write to 
+		//start_block++;
+		start_block = get_next_block(start_block); // testing to see if it write to 
 		//the disk correctly first before fixing FAT
 
 		count_block++;

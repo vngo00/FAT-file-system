@@ -68,6 +68,7 @@ typedef struct
 	{
 		Directory_Entry *parent;
 		int index;
+		char * name;
 	} parsed_entry;
 
 
