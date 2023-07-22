@@ -367,8 +367,87 @@ int parse_directory_path(char *path, parsed_entry *parent_dir)
     return 0;
 }
 
+
+/*
+ *help function to find empty entry
+ *
+ */
+int get_empty_entry(Directory_Entry * parent) {
+	for (int i = 2; i < entries_per_dir; i++) {
+		if (!(parent[i].dir_attr & IS_ACTIVE))
+			return i;
+	}
+	return -1;
+}
+
+
 int fs_mkdir(const char *pathname, mode_t mode)
 {
+	parsed_entry entry;
+	if ( parse_directory_path(pathname, &entry) == -1) {
+		printf(" [MKDIR] invalid path\n");
+		return -1;
+	}
+
+	if (entry.index != -1){
+		printf("[MKDRI] already exists\n");
+		return -1;
+	}
+	if (entry.parent == NULL) {
+		printf("[MKDI] invalid\n");
+		return -1;
+	}
+	int ret = 0;
+
+	Directory_Entry *child = init_directory(bytes_per_block, entry.parent, entry.name);
+	int index = get_empty_entry(entry.parent);
+
+	strcpy(entry.parent[index].dir_name, entry.name);
+	strcpy(entry.parent[index].path, child[0].path);
+	entry.parent[index].dir_file_size = child[0].dir_file_size;
+	entry.parent[index].dir_first_cluster = child[0].dir_first_cluster;
+	entry.parent[index].dir_attr = child[0].dir_attr;
+
+	// commit new data to disk
+	int block_size = bytes_per_block;
+	int blocks_need = (entry.parent[0].dir_file_size + block_size -1) / block_size;
+	if ( write_to_disk(
+			entry.parent,
+			entry.parent[0].dir_first_cluster,
+			blocks_need,
+			block_size) == -1) {
+		printf("[MKDIR] failed to write to disk\n");
+		ret = -1;
+	}
+
+	if (entry.parent != root_directory && entry.parent != current_directory) {
+		free(entry.parent);
+		entry.parent = NULL;
+	}
+
+	free(child);
+	return ret;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	/*
     printf("[ FS MKDIR ] : Attempting to create a directory with pathname: %s and mode: %d\n", pathname, mode);
 
     int block_num = 0;
@@ -411,7 +490,8 @@ int fs_mkdir(const char *pathname, mode_t mode)
     free(new_directory);
 
     printf("[ FS MKDIR ] : Directory %s created successfully.\n", pathname);
-    return 0;
+    return 0; */
+
 }
 
 // Function to check if the given filename corresponds to a regular file
