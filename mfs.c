@@ -590,22 +590,40 @@ fdDir *fs_opendir(const char *pathname)
         printf("not a directory\n");
         return NULL;
     }
-    /*
+    
     parsed_entry entry;
     if (parse_directory_path(pathname, &entry) == -1) {
         printf ("invalid pathname\n");
         return NULL;
     }
 
+    if (entry.index == -1 || entry.parent == NULL) {
+	    printf("[OPEN DIR] dir not exists\n");
+	    return NULL;
+    }
+
+    Directory_Entry *child = get_target_directory(entry.parent[entry.index]);
+    if (child == NULL) {
+	    printf("[OPEN DIR] can;t bring to mem\n");
+	    return NULL;
+    }
+
     fdDir * dir = malloc(sizeof(fdDir));
-    dir->d_reclen = entrie_per_dir; // the total number of entries;
+    dir->d_reclen = entries_per_dir; // the total number of entries;
     dir->dirEntryPosition = 0;			// current position of entry in directory
-    dir->directory = entry.parent[index];		// target directory that the caller wants;
+    dir->directory = child;		// target directory that the caller wants;
     dir->di = malloc(sizeof(struct fs_diriteminfo));
+
+
+    if (entry.parent != root_directory && entry.parent != current_directory &&
+		   entry.parent != child) {
+	   free(entry.parent);
+	  entry.parent = NULL;
+    } 
+
     return dir;
 
-    */
-    return NULL;
+    
 }
 
 /*
@@ -630,7 +648,7 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
         dirp->dirEntryPosition++;
         if (isUsed(dirp->directory[i]))
         {
-            strcpy(dirp->directory[i].dir_name, dirp->di->d_name);
+            strncpy(dirp->di->d_name, dirp->directory[i].dir_name, 256);
             if (isDir(dirp->directory[i]))
                 dirp->di->fileType = DT_DIR;
             else
@@ -649,9 +667,12 @@ int fs_closeddir(fdDir *dirp)
         printf("dirp is null\n");
         return -1;
     }
+    if (dirp->directory != root_directory && dirp->directory != current_directory){
+	    free (dirp->directory);
+	    dirp->directory = NULL;
+    }
     free(dirp->di);
     dirp->di = NULL;
-    free(dirp);
     dirp = NULL;
 
     return 0;
@@ -659,6 +680,24 @@ int fs_closeddir(fdDir *dirp)
 
 int fs_stat(const char *path, struct fs_stat *buf)
 {
+	parsed_entry entry;
+	if (parse_directory_path(path, &entry) == -1) {
+		printf("[FS STAT] invalid path\n");
+		return -1;
+	}
+	if (entry.index == -1 || entry.parent == NULL) {
+		printf("[FS STAT] %s does not exists", entry.name);
+		return -1;
+	}
 
-    return 0;
+	buf->st_size = entry.parent[entry.index].dir_file_size;
+
+	int block_size = bytes_per_block;
+	int bytes_need = entry.parent[entry.index].dir_file_size;
+	int blocks_need = (bytes_need + block_size - 1) / block_size;
+	buf->st_blksize = block_size;
+	buf->st_blocks = blocks_need;
+	
+	return 0;
+	
 }
