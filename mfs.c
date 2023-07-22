@@ -307,7 +307,7 @@ int parse_directory_path(char *path, parsed_entry *parent_dir)
         if (!target_dir)
         {
             free(target_dir);
-            return NULL;
+            return -1;
         }
         target_dir = get_t_d(root_directory, token);
         if (!target_dir)
@@ -468,7 +468,7 @@ int fs_isDir(char *pathname)
     if (!parent_dir)
     {
         free(parent_dir);
-        return NULL;
+        return 0;
     }
 
     // Parse the directory path to get the directory entry corresponding to the filename
