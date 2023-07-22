@@ -161,7 +161,7 @@ int check_directory_attribute(int attribute)
 Directory_Entry *get_target_directory(Directory_Entry entry)
 {
     // check if we want root or current dir
-    if (entry.path == '/')
+    if ( strcmp(entry.path, '/') == 0)
         return root_directory;
     if (strcmp(entry.path, current_directory[0].path) == 0)
         return current_directory;
