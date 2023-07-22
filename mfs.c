@@ -28,7 +28,7 @@
 
 	
 extern int entries_per_dir; // need to know the number of the entries per directory
-
+extern int bytes_per_block;
 
 // This function builds an absolute path from the current directory and the provided pathname.
 char* build_absolute_path(const char *pathname) {
@@ -142,69 +142,21 @@ int check_directory_attribute(int attribute) {
 // It iterates through each directory entry in the current directory until a match is found.
 // If a match is found, it allocates memory for a new directory entry, copies the matching entry into it,
 // and returns the new directory entry. If no match is found, it returns NULL.
-Directory_Entry* get_target_directory(Directory_Entry* current_dir_ent, char* token) {
-    printf("[ GET TARGET DIRECTORY ] : Getting target directory, token: %s\n", token);
-
-    Directory_Entry *entries = malloc(DIRECTORY_MAX_LENGTH * 512);
-    if (entries == NULL) {
-        printf("[ GET TARGET DIRECTORY ] : Failed to allocate memory for entries.\n");
-        return NULL;
+Directory_Entry * get_target_directory(Directory_Entry entry) {
+    // check if we want root or current dir
+    if (entry.path == '/') return root_directory;
+    if (strcmp(entry.path, current_directory[0].path) == 0)
+	    return current_directory;
+	
+    // if not load it to memory
+    int block_size = bytes_per_block;
+    int blocks_need = (entry.dir_file_size + block_size -1) / block_size;
+    Directory_Entry *ret = malloc(blocks_need * block_size);
+    if (read_from_disk(ret, entry.dir_first_cluster, blocks_need, block_size) == -1){
+	    printf("[LOAD DIR] can't load dir\n");
+	    return NULL;
     }
-    printf("[ GET TARGET DIRECTORY ] : Allocated memory for directory entries\n");
-
-    //int readResult = LBAread(entries, 1, current_dir_ent->entries_array_location);
-    //
-    //
-    //heads up entries_array_location is rem,oved
-    //
-    int readResult = -1;
-    //
-    //!!!! heads up entries_array_location removed
-    //
-    //
-
-
-
-
-    if (readResult < 0) {
-        printf("[ GET TARGET DIRECTORY ] : LBAread failed.\n");
-        free(entries);
-        return NULL;
-    }
-    //printf("[ GET TARGET DIRECTORY ] : Read entries from disk at location: %d\n", current_dir_ent->entries_array_location);
-
-    Directory_Entry *retVal = NULL;
-
-    for (int i = 0; i < 64; i++) {
-        printf("[ GET TARGET DIRECTORY ] : Checking entry number: %d, name: %s, attribute: %d\n", i, entries[i].dir_name, entries[i].dir_attr);
-
-        if (strcmp(entries[i].dir_name, token) == 0) {
-            printf("[ GET TARGET DIRECTORY ] : Found matching directory entry at index: %d\n", i);
-
-            retVal = malloc(sizeof (Directory_Entry));
-            if (!retVal) {
-                printf("[ GET TARGET DIRECTORY ] : Failed to allocate memory for retVal.\n");
-                free(entries);
-                return NULL;
-            }
-            printf("[ GET TARGET DIRECTORY ] : Allocated memory for return value\n");
-
-            *retVal = entries[i]; 
-
-            printf("[ GET TARGET DIRECTORY ] : Copied found entry to return value\n");
-            printf("[ FS SETCWD ] : Directory name to be set: '%s'\n", retVal->dir_name);
-            fs_setcwd(retVal->dir_name);
-
-            break;
-        }
-    }
-
-    if (!retVal) {
-        printf("[ GET TARGET DIRECTORY ] : No matching directory entry found. Returning NULL.\n");
-    }
-
-    free(entries);
-    return retVal;
+    return ret;
 }
 
 // This function parses a directory path and finds the corresponding directory entry.
@@ -249,7 +201,14 @@ Directory_Entry* parse_directory_path(const char* path) {
     Directory_Entry* retVal = NULL;
 
     while (token != NULL) {
-        retVal = get_target_directory(current_dir_ent, token);
+	   
+	//
+	////
+	//// fix retVal
+	//
+
+	    
+        retVal =NULL;// get_target_directory(current_dir_ent, token);
         if (!retVal) {
             printf("[ PARSE DIRECTORY PATH ] : No match found. Returning NULL.\n");
             break;

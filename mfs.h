@@ -103,7 +103,7 @@ int check_directory_attribute(int attribute);
 // If a matching directory entry is found, it allocates memory for a new directory entry,
 // copies the matching entry into it, and returns the new directory entry.
 // If no match is found, it returns NULL.
-Directory_Entry* get_target_directory(Directory_Entry* current_dir_ent, char* token) ;
+Directory_Entry * get_target_directory(Directory_Entry entry);
 
 
 // This function parses a directory path and finds the corresponding directory entry.
