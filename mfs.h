@@ -112,9 +112,11 @@ Directory_Entry * get_target_directory(Directory_Entry entry);
 // Otherwise, it searches for the directory entry that matches the path.
 // If a matching directory entry is found, it returns a pointer to the directory entry.
 // If no matching directory entry is found or an error occurs, it returns NULL.
-Directory_Entry* parse_directory_path(const char* path);
+int parse_directory_path(char *path, parsed_entry *parent_dir);
 
 int add_entry_to_parent(Directory_Entry* parent_directory, Directory_Entry* new_directory, char* new_path);
+
+Directory_Entry *get_t_d(Directory_Entry *current_dir_ent, char *token);
 
 
 // This is the strucutre that is filled in from a call to fs_stat
