@@ -301,24 +301,10 @@ int parse_directory_path(char *path, parsed_entry *parent_dir)
     // check for root directory
     if (strcmp(path, "/") == 0)
     {
-        printf("[ PARSE DIRECTORY PATH ] : Root directory detected.\n");
-        parent_dir->parent = root_directory;
-        Directory_Entry *target_dir = malloc(sizeof(Directory_Entry));
-        if (!target_dir)
-        {
-            free(target_dir);
-            return -1;
-        }
-        target_dir = get_t_d(root_directory, token);
-        if (!target_dir)
-        {
-            free(target_dir);
-            return -1;
-        }
+                printf("[ PARSE DIRECTORY PATH ] : Root Directory.\n");
+         parent_dir->parent = root_directory;
+         parent_dir->index = 0;
 
-        parent_dir->index = target_dir->dir_first_cluster;
-        parent_dir->name = target_dir->dir_name;
-        free(target_dir);
         return 0;
     }
 
@@ -349,7 +335,6 @@ int parse_directory_path(char *path, parsed_entry *parent_dir)
             free(current_parsed_ent);
             return -1;
         }
-        parent_dir->parent = current_parsed_ent;
 
         token = strtok(NULL, "/");
         if (token == NULL)
