@@ -239,50 +239,31 @@ Directory_Entry *get_target_directory(Directory_Entry entry)
 //     return retVal;
 // }
 
-Directory_Entry *get_t_d(Directory_Entry *current_dir_ent, char *token)
+Directory_Entry *find_target_dir(Directory_Entry *current_dir_ent, char *token)
 {
-    printf("[ GET DIRECTORY INDEX] : Getting target directory, token: %s\n", token);
-
-    Directory_Entry *entries = malloc(DIRECTORY_MAX_LENGTH * 512);
-    if (entries == NULL)
-    {
-        printf("[ GET DIRECTORY INDEX ] : Failed to allocate memory for entries.\n");
-        return NULL;
-    }
-
-    int readResult = LBAread(entries, 1, current_dir_ent->dir_first_cluster);
-    if (readResult < 0)
-    {
-        printf("[ GET DIRECTORY INDEX] : LBAread failed.\n");
-        free(entries);
-        return NULL;
-    }
-
-    printf("[ GET DIRECTORY INDEX] : Read entries from disk at location: %d\n", current_dir_ent->dir_first_cluster);
 
     Directory_Entry *retVal = malloc(sizeof(Directory_Entry));
     if (!retVal)
     {
-        free(entries);
+        free(retVal);
         return NULL;
     }
 
     for (int i = 0; i < entries_per_dir; i++)
     {
-        printf("[ GET DIRECTORY INDEX ] : Checking entry number: %d, name: %s, attribute: %d\n", i, entries[i].dir_name, entries[i].dir_attr);
+        printf("[ GET DIRECTORY INDEX ] : Checking entry number: %d, name: %s, attribute: %d\n", i, current_dir_ent[i].dir_name, current_dir_ent[i].dir_attr);
 
-        if (strcmp(entries[i].dir_name, token) == 0)
+        if (strcmp(current_dir_ent[i].dir_name, token) == 0)
         {
             printf("[ GET DIRECTORY INDEX ] : Found matching directory entry at index: %d\n", i);
-            *retVal = entries[i];
-            free(entries);
+
+            retVal = get_target_directory(current_dir_ent[i]);
             return retVal;
         }
     }
-
     printf("[ GET DIRECTORY INDEX ] : No matching directory entry found. Returning NULL.\n");
 
-    free(entries);
+    free(retVal);
     return NULL;
 }
 
@@ -328,7 +309,7 @@ int parse_directory_path(char *path, parsed_entry *parent_dir)
 
     while (token != NULL)
     {
-        current_parsed_ent = get_t_d(current_parsed_ent, token);
+        current_parsed_ent = find_target_dir(current_parsed_ent, token);
         if (!current_parsed_ent)
         {
             printf("[ PARSE DIRECTORY PATH ] : No match found.\n");

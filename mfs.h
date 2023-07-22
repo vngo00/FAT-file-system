@@ -116,7 +116,7 @@ int parse_directory_path(char *path, parsed_entry *parent_dir);
 
 int add_entry_to_parent(Directory_Entry* parent_directory, Directory_Entry* new_directory, char* new_path);
 
-Directory_Entry *get_t_d(Directory_Entry *current_dir_ent, char *token);
+Directory_Entry *find_target_dir(Directory_Entry *current_dir_ent, char *token);
 
 
 // This is the strucutre that is filled in from a call to fs_stat
