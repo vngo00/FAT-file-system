@@ -242,28 +242,18 @@ Directory_Entry *get_target_directory(Directory_Entry entry)
 Directory_Entry *find_target_dir(Directory_Entry *current_dir_ent, char *token)
 {
 
-    Directory_Entry *retVal = malloc(sizeof(Directory_Entry));
-    if (!retVal)
-    {
-        free(retVal);
-        return NULL;
-    }
-
+    Directory_Entry *retVal;
     for (int i = 0; i < entries_per_dir; i++)
     {
-        printf("[ GET DIRECTORY INDEX ] : Checking entry number: %d, name: %s, attribute: %d\n", i, current_dir_ent[i].dir_name, current_dir_ent[i].dir_attr);
+        printf("[ ind_target_dir] : Checking entry number: %d, name: %s, attribute: %d\n", i, current_dir_ent[i].dir_name, current_dir_ent[i].dir_attr);
 
         if (strcmp(current_dir_ent[i].dir_name, token) == 0)
         {
-            printf("[ GET DIRECTORY INDEX ] : Found matching directory entry at index: %d\n", i);
-
-            retVal = get_target_directory(current_dir_ent[i]);
-            return retVal;
+            printf("[ ind_target_dir ] : Found matching directory entry at index: %d\n", i);
+            return get_target_directory(current_dir_ent[i]);
         }
     }
-    printf("[ GET DIRECTORY INDEX ] : No matching directory entry found. Returning NULL.\n");
-
-    free(retVal);
+    printf("[ ind_target_dir ] : No matching directory entry found. Returning NULL.\n");
     return NULL;
 }
 
