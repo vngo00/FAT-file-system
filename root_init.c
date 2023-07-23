@@ -264,7 +264,7 @@ Directory_Entry * init_directory(uint64_t block_size, Directory_Entry *parent, c
 
 	for (int i = 2; i < vcb->entries_per_dir; i++) {
 		// init entries
-		strcpy(entries[i].dir_name, "hello empty entry");
+		strcpy(entries[i].dir_name, "entry");
 	}
 
 	if (parent == NULL) { // root here
