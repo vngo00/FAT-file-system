@@ -29,6 +29,8 @@
 extern int entries_per_dir; // need to know the number of the entries per directory
 extern int bytes_per_block;
 
+int get_empty_entry(Directory_Entry * parent);
+
 // This function builds an absolute path from the current directory and the provided pathname.
 char *build_absolute_path(const char *pathname)
 {
@@ -336,7 +338,6 @@ int get_empty_entry(Directory_Entry * parent) {
 	return -1;
 }
 
-
 int fs_mkdir(const char *pathname, mode_t mode)
 {
 	parsed_entry entry;
@@ -542,14 +543,17 @@ int fs_delete(char *filename)
 {
 
     // if not file do no delet
-    if (fs_isDir(filename) == 1)
+    if (fs_isDir(filename))
     {
         printf("Can't delete a directory\n");
     }
-    /*
+    
     // grab the directory entry of the file
     parsed_entry entry;
-    parse_directory_path(filename, &entry);
+    if (parse_directory_path(filename, &entry) == -1) {
+	    printf("[FS DELETE] %s does not exists\n", entry.name);
+	    return -1;
+    }
 
     if (entry.index == -1){
         printf("not a valid file\n");
@@ -557,19 +561,33 @@ int fs_delete(char *filename)
     }
 
     // free the blocks
-    release_blocks(entry.parent[entry.index]->dir_first_cluster);
+    release_blocks(entry.parent[entry.index].dir_first_cluster);
+
 
     // need to clear out the metadata of the file from the directory entry;
+    strcpy(entry.parent[entry.index].dir_name, "empty entry");
+    strcpy(entry.parent[entry.index].path, "");
+    entry.parent[entry.index].dir_attr = 0;
+    entry.parent[entry.index].dir_first_cluster = 0;
+    entry.parent[entry.index].dir_file_size = 0;
+    
+    // update data to disk 
+    int bytes_need = entry.parent[0].dir_file_size;
+    int blocks_need = (bytes_need + bytes_per_block -1) / bytes_per_block;
+    if (write_to_disk(entry.parent,
+			    entry.parent[0].dir_first_cluster,
+			    blocks_need, bytes_per_block) == -1) {
+	    printf("[FS DELETE] can't write to disk\n");
+	    return -1;
+    }
 
-    entry.parent[entry.index]->dir_name ="\0";
-    entry.parent[entry.index]->path = "\0";
-    entry.parent[entry.index]->dir_attr = 0;
-    entry.parent[entry.index]->dir_first_cluster = 0;
-    entry.parent[entry.index]->dir_file_size = 0;
-    entry.parent[entry.index]->entries_array_location = 0;
-    */
+    // free directory if not root or current dir
+    if (entry.parent != root_directory && entry.parent != current_directory) {
+	    free(entry.parent);
+	    entry.parent = NULL;
+    }
 
-    // need parse path to be done fisr
+
     return 0;
 }
 
