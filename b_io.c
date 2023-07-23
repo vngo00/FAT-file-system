@@ -21,16 +21,67 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "b_io.h"
+#include "mfs.h"
 
 #define MAXFCBS 20
 #define B_CHUNK_SIZE 512
 
+extern int bytes_per_block;
+
+typedef struct file_info {
+	char file_name[NAME_MAX_LENGTH];	//file name
+	int file_size;				// file size in bytes
+	int location;				// starting logical block in disk
+	int blocks;				// total blocks of file in disk
+} file_info;
+
+file_info * get_file_info(char *fname) {
+
+	if (fs_isDir(fname)) return NULL;
+
+	parsed_entry entry;
+	if ( parse_directory_path(fname, &entry) == -1) {
+		printf(" get fileinffo %s does not exists", entry.name);
+		return NULL;
+	}
+
+	if (entry.parent == NULL) {
+		printf(" get fileinfo invalid file\n");
+		return NULL;
+	}
+
+	file_info *finfo = malloc(sizeof(file_info));
+	if (entry.index != -1) {
+		strcpy(finfo->file_name, entry.parent[entry.index].dir_name);
+		finfo->file_size = entry.parent[entry.index].dir_file_size;
+		finfo->location = entry.parent[entry.index].dir_first_cluster;
+		int blocks = (finfo->file_size + bytes_per_block -1) / bytes_per_block;
+		finfo->blocks = blocks;
+	} else {
+		strcpy(finfo->file_name, "");
+	}
+
+	if (entry.parent != root_directory && entry.parent != current_directory) {
+		free(entry.parent);
+		entry.parent = NULL;
+	}
+
+	return finfo;
+}
+
+
+
 typedef struct b_fcb
 	{
 	/** TODO add al the information you need in the file control block **/
+	file_info *fi;		// low level system file info
 	char * buf;		//holds the open file buffer
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
+	int current_location;	// current block location 
+	int blocks_read;	// blocks read so far
+	int file_size_index;	// file offset
+	int flags;		// mark the purpose when open the file
 	} b_fcb;
 	
 b_fcb fcbArray[MAXFCBS];
@@ -72,12 +123,43 @@ b_io_fd b_open (char * filename, int flags)
 	//*** TODO ***:  Modify to save or set any information needed
 	//
 	//
-		
+	if (filename == NULL) return -1;	
 	if (startup == 0) b_init();  //Initialize our system
 	
 	returnFd = b_getFCB();				// get our own file descriptor
-										// check for error - all used FCB's
+	// check for error - all used FCB's
+	if (returnFd == -1) return -1;
+
+	fcbArray[returnFd].fi = (file_info *) get_file_info(filename);
+	if (fcbArray[returnFd].fi == NULL) {
+		printf("[OPEN] invalid filename\n");
+		return -1;
+	}
+
+	if ( strcmp(fcbArray[returnFd].fi, "") == 0) {
+		if ( !(flags & O_CREAT) ) { // don't want to make new if not exists
+			printf("[OPEN] file does not exists\n");
+			free(fcbArray[returnFd].fi);
+			fcbArray[returnFd].fi = NULL;
+			return -1;
+		}
+		if (fs_mkfile(filename) == -1) {
+			free(fcbArray[returnFd].fi);
+			fcbArray[returnFd].fi = NULL;
+			return -1;
+		}
+		fcbArray[returnFd].fi = get_file_info(filename);
+	}
+
 	
+	fcbArray[returnFd].buf = (char *) malloc(B_CHUNK_SIZE);
+	fcbArray[returnFd].index = 0;
+	fcbArray[returnFd].buflen = 0;
+	fcbArray[returnFd].current_location = fcbArray[returnFd].fi->location;
+	fcbArray[returnFd].blocks_read = 0;
+	fcbArray[returnFd].blocks_read = 0;
+	fcbArray[returnFd].file_size_index = 0;
+	fcbArray[returnFd].flags = flags;
 	return (returnFd);						// all set
 	}
 
@@ -152,5 +234,19 @@ int b_read (b_io_fd fd, char * buffer, int count)
 // Interface to Close the file	
 int b_close (b_io_fd fd)
 	{
+	if ( (fd < 0) || (fd >= MAXFCBS)) {
+		return -1;
+	}
+	free(fcbArray[fd].fi);
+	fcbArray[fd].fi = NULL;
+	free(fcbArray[fd].buf);
+	fcbArray[fd].buf = NULL;
+	fcbArray[fd].index = 0;
+	fcbArray[fd].buflen = 0;
+	fcbArray[fd].current_location = 0;
+	fcbArray[fd].blocks_read = 0;
+	fcbArray[fd].file_size_index = 0;
+	fcbArray[fd]. flags = 0;
 
+	return 0;
 	}

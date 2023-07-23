@@ -539,6 +539,22 @@ int fs_isDir(char *pathname)
     return is_dir != 0;
 }
 
+
+
+
+
+int fs_mkfile(char *filename) {
+	return 0;
+}
+
+
+
+
+
+
+
+
+
 int fs_delete(char *filename)
 {
 
