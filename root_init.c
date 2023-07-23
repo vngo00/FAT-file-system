@@ -186,10 +186,14 @@ int load_root(){
     return 0;
 }
 
+
+
+
 /*
  * This function loads a directory from the disk into memory.
  * If the provided directory is NULL, it will load the root directory
  */
+/*
 int load_directory(uint64_t block_size, Directory_Entry* directory) {
     printf("[ LOAD DIRECTORY ] : Starting process to load directory...\n");
 
@@ -235,18 +239,19 @@ int load_directory(uint64_t block_size, Directory_Entry* directory) {
     printf("[ LOAD DIRECTORY ] : Directory loaded successfully, returning block number: %d...\n", block_num);
     return block_num;
 }
-
+ */
 
 /*
  * This function clears the current working directory
  */
+/*
 void clear_current_working_directory()
 {
     if (cwd != NULL) {
         memset(cwd, 0, 255);
     }
 }
-
+*/
 
 
 Directory_Entry * init_directory(uint64_t block_size, Directory_Entry *parent, char *name) {
@@ -275,7 +280,9 @@ Directory_Entry * init_directory(uint64_t block_size, Directory_Entry *parent, c
 	
 	// concat the parenth path to the child's name
 	// to make the child's path
-	strcpy(entries[0].path, parent[0].path);
+	if ( strcmp(parent[0].path, "/") != 0) {
+		strcpy(entries[0].path, parent[0].path);
+	}
 	strcat(entries[0].path, "/");
 	strcat(entries[0].path, name);
 	

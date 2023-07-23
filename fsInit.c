@@ -88,6 +88,12 @@ void exitFileSystem() {
     free(fat_array);
     fat_array = NULL;
 
+	
+    if (current_directory != root_directory) {
+	    free(current_directory);
+	    current_directory = NULL;
+    }
+
     free(root_directory);
     root_directory = NULL;
 
