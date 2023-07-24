@@ -225,8 +225,7 @@ uint32_t release_blocks(int first_block) {
  * Function retrieves the next block in the chain
  */
 uint32_t get_next_block(int current_block) {
-    int next = fat_array[current_block];
-    return next != EOF_BLOCK ? next : EOF_BLOCK;
+    return fat_array[current_block];
 }
 
 /*
