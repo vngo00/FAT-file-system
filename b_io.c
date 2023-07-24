@@ -124,6 +124,9 @@ b_io_fd b_open (char * filename, int flags)
 	//
 	//
 	if (filename == NULL) return -1;	
+	if ( (flags & O_CREAT) && (flags & O_RDONLY)) return -1;
+	if ( (flags & O_RDONLY) && (flags & O_TRUNC)) return -1;
+
 	if (startup == 0) b_init();  //Initialize our system
 	
 	returnFd = b_getFCB();				// get our own file descriptor
@@ -136,7 +139,7 @@ b_io_fd b_open (char * filename, int flags)
 		return -1;
 	}
 
-	if ( strcmp(fcbArray[returnFd].fi, "") == 0) {
+	if ( strcmp(fcbArray[returnFd].fi->file_name, "") == 0) {
 		if ( !(flags & O_CREAT) ) { // don't want to make new if not exists
 			printf("[OPEN] file does not exists\n");
 			free(fcbArray[returnFd].fi);
@@ -148,6 +151,10 @@ b_io_fd b_open (char * filename, int flags)
 			fcbArray[returnFd].fi = NULL;
 			return -1;
 		}
+		fcbArray[returnFd].fi = get_file_info(filename);
+	} else if ( (flags & O_TRUNC) ) {
+		fs_delete(filename);
+		fs_mkfile(filename);
 		fcbArray[returnFd].fi = get_file_info(filename);
 	}
 

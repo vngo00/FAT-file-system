@@ -544,6 +544,49 @@ int fs_isDir(char *pathname)
 
 
 int fs_mkfile(char *filename) {
+
+	parsed_entry entry;
+	if (parse_directory_path(filename, &entry) == -1) {
+		printf("[MKFILE] invalid path\n");
+		return -1;
+	}
+
+	if (strcmp(entry.name, "") == 0) {
+		printf("[MKFILE] name ?\n");
+		return -1;
+	}
+
+	if (entry.index != -1) {
+		printf("[MKFILE] %s already exists\n", entry.name);
+		return -1;
+	}
+
+	if (entry.parent == NULL) {
+		printf("[MKFILE] error\n");
+		return -1;
+	}
+
+	int index = get_empty_entry(entry.parent);
+	strncpy(entry.parent[index].dir_name, entry.name, NAME_MAX_LENGTH);
+	int blocks = 70;
+	entry.parent[index].dir_first_cluster = allocate_blocks(blocks);
+	entry.parent[index].dir_attr |= IS_ACTIVE;
+	printf("[MKFILE] file location: %d\n", entry.parent[index].dir_first_cluster);
+
+	// commit new data to disk
+	int block_size = bytes_per_block;
+	int blocks_need = (entry.parent[0].dir_file_size + block_size -1) / block_size;
+	if (write_to_disk(entry.parent, entry.parent[0].dir_first_cluster, blocks_need, block_size) == -1) {
+		printf("[MKFILE] failed to make file\n");
+		return -1;
+	}
+
+	if (entry.parent != root_directory && entry.parent != current_directory) {
+		free(entry.parent);
+		entry.parent = NULL;
+	}
+
+
 	return 0;
 }
 
