@@ -546,7 +546,7 @@ int fs_isDir(char *pathname)
 int fs_mkfile(char *filename) {
 
 	parsed_entry entry;
-	if (parse_directory_path(filename, &entry) == -1) {
+	if (parse_directory_path(strdup(filename), &entry) == -1) {
 		printf("[MKFILE] invalid path\n");
 		return -1;
 	}
@@ -602,14 +602,14 @@ int fs_delete(char *filename)
 {
 
     // if not file do no delet
-    if (fs_isDir(filename))
+    if (fs_isDir(strdup(filename)))
     {
         printf("Can't delete a directory\n");
     }
     
     // grab the directory entry of the file
     parsed_entry entry;
-    if (parse_directory_path(filename, &entry) == -1) {
+    if (parse_directory_path(strdup(filename), &entry) == -1) {
 	    printf("[FS DELETE] %s does not exists\n", entry.name);
 	    return -1;
     }
@@ -662,14 +662,14 @@ int fs_delete(char *filename)
 fdDir *fs_opendir(const char *pathname)
 {
     // check if pathname is a directory or a file
-    if (fs_isFile(pathname) == 1)
+    if (fs_isFile(strdup(pathname)) == 1)
     {
         printf("not a directory\n");
         return NULL;
     }
     
     parsed_entry entry;
-    if (parse_directory_path(pathname, &entry) == -1) {
+    if (parse_directory_path(strdup(pathname), &entry) == -1) {
         printf ("invalid pathname\n");
         return NULL;
     }
@@ -758,7 +758,7 @@ int fs_closeddir(fdDir *dirp)
 int fs_stat(const char *path, struct fs_stat *buf)
 {
 	parsed_entry entry;
-	if (parse_directory_path(path, &entry) == -1) {
+	if (parse_directory_path(strdup(path), &entry) == -1) {
 		printf("[FS STAT] invalid path\n");
 		return -1;
 	}
