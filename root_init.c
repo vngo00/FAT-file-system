@@ -322,6 +322,7 @@ Directory_Entry * init_directory(uint64_t block_size, Directory_Entry *parent, c
 
 
 	// link the second entry to the parent
+	parent[0].dir_attr |= DIRTY_DIR;
 	strcpy(entries[1].dir_name, "..");
 	entries[1].dir_file_size = parent[0].dir_file_size;
 	entries[1].dir_first_cluster = parent[0].dir_first_cluster;

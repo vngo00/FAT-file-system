@@ -27,7 +27,7 @@
 #define MAX_PATH_LENGTH		255
 #define IS_ACTIVE 	1<<27 // sixth bit of the dir_attr in DE will indicate whether in use or not
 #define IS_DIR		1<<28 // fifth bit indicating whether DE is a directory	
-
+#define DIRTY_DIR	1<<26 // bit to indicate whether a dir is empty or not
 typedef struct Directory_Entry {
     char dir_name[NAME_MAX_LENGTH];
     char path[MAX_PATH_LENGTH];
