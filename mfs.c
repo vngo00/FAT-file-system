@@ -103,15 +103,24 @@ int fs_setcwd(char *path)
     parsed_entry entry;
 
     if ( parse_directory_path(path, &entry) == -1) {
-		printf("[ FS SETCWD ]: No such file or directory.\n");
+		printf("[ FS SETCWD ]: Invalid path.\n");
+        free_dir(entry.parent);
 		return -1;
 	}
     
     if (!fs_isDir(path)){
         printf("[ FS SETCWD ]: Not a directory\n");
+        free_dir(entry.parent);
         return -1;
     }
 
+    if (entry.index == -1 || entry.parent == NULL) {
+		printf("[ FS SETCWD ] Directory does not exist within current directory\n");
+		free_dir(entry.parent);
+		return -1;
+	}
+
+   
     Directory_Entry* target = get_target_directory(entry.parent[entry.index]);
     current_directory = target;
    
