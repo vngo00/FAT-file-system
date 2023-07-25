@@ -30,6 +30,10 @@ extern int entries_per_dir; // need to know the number of the entries per direct
 extern int bytes_per_block;
 
 int get_empty_entry(Directory_Entry * parent);
+void free_dir(Directory_Entry *dir);
+int is_dir(Directory_Entry entry);
+
+
 
 // This function builds an absolute path from the current directory and the provided pathname.
 char *build_absolute_path(const char *pathname)
@@ -241,24 +245,84 @@ Directory_Entry *get_target_directory(Directory_Entry entry)
 //     return retVal;
 // }
 
-Directory_Entry *find_target_dir(Directory_Entry *current_dir_ent, char *token)
+int find_target_entry(Directory_Entry *current_dir_ent, char *token)
 {
 
-    Directory_Entry *retVal;
     for (int i = 0; i < entries_per_dir; i++)
     {
-        printf("[ ind_target_dir] : Checking entry number: %d, name: %s, attribute: %d\n", i, current_dir_ent[i].dir_name, current_dir_ent[i].dir_attr);
+        //printf("[ ind_target_dir] : Checking entry number: %d, name: %s, attribute: %d\n", i, current_dir_ent[i].dir_name, current_dir_ent[i].dir_attr);
 
         if (strcmp(current_dir_ent[i].dir_name, token) == 0)
         {
-            printf("[ ind_target_dir ] : Found matching directory entry at index: %d\n", i);
-            return get_target_directory(current_dir_ent[i]);
+            //printf("[ ind_target_dir ] : Found matching directory entry at index: %d\n", i);
+            return i;
         }
     }
-    printf("[ ind_target_dir ] : No matching directory entry found. Returning NULL.\n");
-    return NULL;
+    //printf("[ ind_target_dir ] : No matching directory entry found. Returning NULL.\n");
+    return -1;
 }
 
+
+int parse_directory_path(char *path, parsed_entry *entry) {
+	if (path == NULL) return -1;
+	
+	Directory_Entry *start_dir;
+	// checking for starting point
+	if ( path[0] != '/') { //relative
+		start_dir = current_directory;
+	} else {
+		start_dir = root_directory;
+	}
+
+	Directory_Entry * parent = start_dir;
+
+	int index = -1;
+	char * token = strtok(path, "/");
+
+	// either it is current dir or root
+	if (token == NULL) {
+		entry->parent = start_dir;
+		entry->index = 0;
+		return 0;
+	}
+
+	while (token != NULL) {
+		char * token2 = strtok(NULL, "/");
+
+		if (token2 == NULL) {
+			index = find_target_entry(parent, token);
+			entry->name = token;
+		} else {
+			index = find_target_entry(parent, token);
+			if (index == -1) return -1;
+			if (!is_dir(parent[index])) return -1;
+			Directory_Entry *temp = get_target_directory(parent[index]);
+			if (parent != start_dir) free_dir(parent);
+			parent = temp;
+		}
+		token = token2;
+	}
+	entry->parent = parent;
+	entry->index = index;
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 int parse_directory_path(char *path, parsed_entry *parent_dir)
 {
     printf("[ PARSE DIRECTORY PATH ] : Parsing directory path, path: %s\n", path);
@@ -324,6 +388,10 @@ int parse_directory_path(char *path, parsed_entry *parent_dir)
     free(current_parsed_ent);
     return 0;
 }
+*/
+
+
+
 
 
 /*
@@ -346,20 +414,18 @@ int fs_mkdir(const char *pathname, mode_t mode)
 		return -1;
 	}
 
-	if (entry.index != -1){
-		printf("[MKDRI] already exists\n");
+	if ( strcmp(entry.name, "") == 0  || entry.index != -1 || entry.parent == NULL){
+		free_dir(entry.parent);
+		printf("[MKDRI] error\n");
 		return -1;
 	}
-	if (entry.parent == NULL) {
-		printf("[MKDI] invalid\n");
-		return -1;
-	}
+	
 	int ret = 0;
 
 	Directory_Entry *child = init_directory(bytes_per_block, entry.parent, entry.name);
 	int index = get_empty_entry(entry.parent);
 
-	strcpy(entry.parent[index].dir_name, entry.name);
+	strncpy(entry.parent[index].dir_name, entry.name, NAME_MAX_LENGTH);
 	strcpy(entry.parent[index].path, child[0].path);
 	entry.parent[index].dir_file_size = child[0].dir_file_size;
 	entry.parent[index].dir_first_cluster = child[0].dir_first_cluster;
@@ -376,167 +442,38 @@ int fs_mkdir(const char *pathname, mode_t mode)
 		printf("[MKDIR] failed to write to disk\n");
 		ret = -1;
 	}
-
-	if (entry.parent != root_directory && entry.parent != current_directory) {
-		free(entry.parent);
-		entry.parent = NULL;
-	}
-
-	free(child);
+	free_dir(entry.parent);
+	free_dir(child);
 	return ret;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	/*
-    printf("[ FS MKDIR ] : Attempting to create a directory with pathname: %s and mode: %d\n", pathname, mode);
-
-    int block_num = 0;
-
-    printf("[ FS MKDIR ] : Loading root directory...\n");
-    int load_directory_result = load_directory(vcb->bytes_per_block, root_directory);
-
-    if (load_directory_result == -1)
-    {
-        printf("[ FS MKDIR ] : Failed to load root directory. Load directory returned: %d.\n", load_directory_result);
-        return -1;
-    }
-
-    printf("[ FS MKDIR ] : Root directory loaded successfully. Loaded directory result: %d\n", load_directory_result);
-
-    Directory_Entry *new_directory = malloc(512);
-    printf("[ FS MKDIR ] : Allocating memory for new directory...\n");
-
-    if (new_directory == NULL)
-    {
-        printf("[ FS MKDIR ] : Failed to allocate memory for new directory.\n");
-        return -1;
-    }
-
-    printf("[ FS MKDIR ] : Memory for new directory allocated successfully.\n");
-
-    LBAread(new_directory, 1, load_directory_result);
-    printf("[ FS MKDIR ] : Read new directory data from the block.\n");
-    printf("[ FS MKDIR ] : Attempting to initialize new directory under root directory...\n");
-    int init_directory_result = init_directory(vcb->bytes_per_block, new_directory, (char *)pathname);
-    if (init_directory_result == -1)
-    {
-        printf("[ FS MKDIR ] : Failed to initialize directory. Init directory returned: %d.\n", init_directory_result);
-        free(new_directory);
-        return -1;
-    }
-
-    printf("[ FS MKDIR ] : Directory %s initialized successfully. Init directory result: %d\n", pathname, init_directory_result);
-
-    free(new_directory);
-
-    printf("[ FS MKDIR ] : Directory %s created successfully.\n", pathname);
-    return 0; */
 
 }
 
 // Function to check if the given filename corresponds to a regular file
 int fs_isFile(char *filename)
 {
-
-    parsed_entry *parent_dir = malloc(sizeof(parsed_entry));
-
-    if (!parent_dir)
-    {
-        free(parent_dir);
-        return 0;
-    }
-
-    // Parse the directory path to get the directory entry corresponding to the filename
-    int found = parse_directory_path(filename, parent_dir);
-
-    // If the directory entry is NULL, it means the file was not found
-    if (found == -1)
-    {
-        // Print a message stating that the file was not found
-        printf("[ FS ISFILE ] : File '%s' not found.\n", filename);
-        // Return 0 indicating that the file does not exist
-        return 0;
-    }
-
-    // Check if the directory attribute of the entry is not a directory
-    // If returns 1, it's a file, otherwise it's a directory
-
-    Directory_Entry *directory_entry = get_target_directory(parent_dir->parent[parent_dir->index]);
-    int is_file = !(directory_entry->dir_attr & IS_DIR);
-    if (is_file)
-    {
-        // print a message stating that it's a regular file
-        printf("[ FS ISFILE ] : File '%s' is a regular file.\n", filename);
-    }
-    else
-    {
-        // print a message stating that it's not a regular file
-        printf("[ FS ISFILE ] : File '%s' is not a regular file.\n", filename);
-    }
-    // Deallocate the memory allocated to the directory entry to avoid memory leaks
-    free(directory_entry);
-    // Returns the status of whether the entity is a file or not
-    return is_file;
+	return !fs_isDir(filename);
 }
 
 // Function to check if the given pathname corresponds to a directory or not
 int fs_isDir(char *pathname)
 {
+	parsed_entry entry;
+	if ( parse_directory_path(pathname, &entry) == -1) {
+		printf("[IS DIR] invalid path\n");
+		return -1;
+	}
 
-    parsed_entry *parent_dir = malloc(sizeof(parsed_entry));
+	if (entry.index == -1 || entry.parent == NULL) {
+		printf("[IS DIR] %s does not exist\n", entry.name);
+		free_dir(entry.parent);
+		return -1;
+	}
 
-    if (!parent_dir)
-    {
-        free(parent_dir);
-        return 0;
-    }
-
-    // Parse the directory path to get the directory entry corresponding to the filename
-    int result = parse_directory_path(pathname, parent_dir);
-    // Parse the directory path to get the directory entry corresponding to the pathname
-    // If the directory entry is NULL, it means the directory was not found
-    if (result == -1)
-    {
-        // Print a message stating that the directory was not found
-        printf("[ FS ISDIR ] : Directory '%s' not found.\n", pathname);
-        // Returns 0 indicating that the directory does not exist
-        return 0;
-    }
-    Directory_Entry *directory_entry = get_target_directory(parent_dir->parent[parent_dir->index]);
-    // Check if the directory attribute of the entry is a directory
-    // If the result is non-zero, it's a directory
-    int is_dir = directory_entry->dir_attr & IS_DIR;
-    if (is_dir)
-    {
-        // prints a message stating that it's a directory
-        printf("[ FS ISDIR ] : Directory '%s' is a directory.\n", pathname);
-    }
-    else
-    {
-        // prints a message stating that it's not a directory
-        printf("[ FS ISDIR ] : Directory '%s' is not a directory.\n", pathname);
-    }
-    // Deallocate the memory allocated to the directory entry to avoid memory leaks
-    free(directory_entry);
-    // A non-zero result indicates it's a directory
-    return is_dir != 0;
+	int ret = is_dir(entry.parent[entry.index]);
+	free_dir(entry.parent);
+	return ret;
+ 
 }
 
 
@@ -614,7 +551,8 @@ int fs_delete(char *filename)
 	    return -1;
     }
 
-    if (entry.index == -1){
+    if (entry.index == -1 || entry.parent == NULL){
+	free_dir(entry.parent);
         printf("not a valid file\n");
         return -1;
     }
@@ -624,7 +562,7 @@ int fs_delete(char *filename)
 
 
     // need to clear out the metadata of the file from the directory entry;
-    strcpy(entry.parent[entry.index].dir_name, "empty entry");
+    strcpy(entry.parent[entry.index].dir_name, "entry");
     strcpy(entry.parent[entry.index].path, "");
     entry.parent[entry.index].dir_attr = 0;
     entry.parent[entry.index].dir_first_cluster = 0;
@@ -637,14 +575,12 @@ int fs_delete(char *filename)
 			    entry.parent[0].dir_first_cluster,
 			    blocks_need, bytes_per_block) == -1) {
 	    printf("[FS DELETE] can't write to disk\n");
+	    free_dir(entry.parent);
 	    return -1;
     }
 
     // free directory if not root or current dir
-    if (entry.parent != root_directory && entry.parent != current_directory) {
-	    free(entry.parent);
-	    entry.parent = NULL;
-    }
+    free_dir(entry.parent);
 
 
     return 0;
@@ -662,7 +598,7 @@ int fs_delete(char *filename)
 fdDir *fs_opendir(const char *pathname)
 {
     // check if pathname is a directory or a file
-    if (fs_isFile(strdup(pathname)) == 1)
+    if (fs_isFile(strdup(pathname)))
     {
         printf("not a directory\n");
         return NULL;
@@ -676,12 +612,14 @@ fdDir *fs_opendir(const char *pathname)
 
     if (entry.index == -1 || entry.parent == NULL) {
 	    printf("[OPEN DIR] dir not exists\n");
+	    free_dir(entry.parent);
 	    return NULL;
     }
 
     Directory_Entry *child = get_target_directory(entry.parent[entry.index]);
     if (child == NULL) {
 	    printf("[OPEN DIR] can;t bring to mem\n");
+	    free_dir(entry.parent);
 	    return NULL;
     }
 
@@ -692,10 +630,8 @@ fdDir *fs_opendir(const char *pathname)
     dir->di = malloc(sizeof(struct fs_diriteminfo));
 
 
-    if (entry.parent != root_directory && entry.parent != current_directory &&
-		   entry.parent != child) {
-	   free(entry.parent);
-	  entry.parent = NULL;
+    if (entry.parent != child){
+	    free_dir(entry.parent);
     } 
 
     return dir;
@@ -706,11 +642,11 @@ fdDir *fs_opendir(const char *pathname)
 /*
  * helper functions for readdir
  */
-int isUsed(Directory_Entry entry)
+int is_used(Directory_Entry entry)
 {
     return entry.dir_attr & IS_ACTIVE;
 }
-int isDir(Directory_Entry entry)
+int is_dir(Directory_Entry entry)
 {
     return entry.dir_attr & IS_DIR;
 }
@@ -723,10 +659,10 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
     for (int i = dirp->dirEntryPosition; i < dirp->d_reclen; i++)
     {
         dirp->dirEntryPosition++;
-        if (isUsed(dirp->directory[i]))
+        if (is_used(dirp->directory[i]))
         {
             strncpy(dirp->di->d_name, dirp->directory[i].dir_name, 256);
-            if (isDir(dirp->directory[i]))
+            if (is_dir(dirp->directory[i]))
                 dirp->di->fileType = DT_DIR;
             else
                 dirp->di->fileType = DT_REG;
@@ -737,17 +673,14 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
     return NULL;
 }
 
-int fs_closeddir(fdDir *dirp)
+int fs_closedir(fdDir *dirp)
 {
     if (dirp == NULL)
     {
         printf("dirp is null\n");
         return -1;
     }
-    if (dirp->directory != root_directory && dirp->directory != current_directory){
-	    free (dirp->directory);
-	    dirp->directory = NULL;
-    }
+    free_dir(dirp->directory);
     free(dirp->di);
     dirp->di = NULL;
     dirp = NULL;
@@ -763,6 +696,7 @@ int fs_stat(const char *path, struct fs_stat *buf)
 		return -1;
 	}
 	if (entry.index == -1 || entry.parent == NULL) {
+		free_dir(entry.parent);
 		printf("[FS STAT] %s does not exists", entry.name);
 		return -1;
 	}
@@ -778,3 +712,13 @@ int fs_stat(const char *path, struct fs_stat *buf)
 	return 0;
 	
 }
+
+
+void free_dir(Directory_Entry * dir) {
+	if (dir != current_directory && dir != root_directory) {
+		free(dir);
+		dir == NULL;
+	}
+}
+
+
