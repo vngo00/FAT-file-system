@@ -449,6 +449,83 @@ int fs_mkdir(const char *pathname, mode_t mode)
 
 }
 
+
+int fs_rmdir(const char *pathname) {
+	if (fs_isFile(strdup(pathname))) {
+		printf("[RMDIR] file\n");
+		return -1;
+	}
+
+	parsed_entry entry;
+	if (parse_directory_path(strdup(pathname), &entry) == -1) {
+		printf("[RMDIR] invalid path\n");
+		free_dir(entry.parent);
+		return -1;
+	}
+
+	if (entry.index == -1 || entry.parent == NULL) {
+		printf("[RMDIR] dir not exist\n");
+		free_dir(entry.parent);
+		return -1;
+	}
+	if (strcmp(entry.name, "") == 0 || strcmp(entry.name, "/") == 0) {
+		printf("[RMDIR] get lost\n");
+		free_dir(entry.parent);
+		return -1;
+	}
+
+	if (entry.parent[entry.index].dir_attr & DIRTY_DIR) {
+		printf("[RMDIR] not empty dir\n");
+		free_dir(entry.parent);
+		return -1;
+	}
+
+	// load child
+	Directory_Entry * child = get_target_directory(entry.parent[entry.index]);
+	if ( child == NULL) {
+		printf("[RMDIR] NULL CHILD ?\n");
+		free_dir(entry.parent);
+		return -1;
+	}
+
+	child[1].dir_first_cluster = -1; // unlink the .. entry that links to the parent
+
+	int block_size = bytes_per_block;
+	int bytes_need = child[0].dir_file_size;
+	int blocks_need = (block_size + bytes_need -1 ) / block_size;
+	int child_start = child[0].dir_first_cluster;
+	if (write_to_disk(child, child_start, blocks_need, block_size) == -1 ) {
+		printf("Can't write to disk\n");
+		free_dir(entry.parent);
+		free_dir(child);
+		return -1;
+	}
+
+	free_dir(child);
+
+	release_blocks(child_start);
+
+	strcpy(entry.parent[entry.index].dir_name, "entry");
+	strcpy(entry.parent[entry.index].path, "");
+	entry.parent[entry.index].dir_first_cluster = -1;
+	entry.parent[entry.index].dir_file_size = 0;
+	entry.parent[entry.index].dir_attr = 0;
+
+	if (write_to_disk(entry.parent, entry.parent[0].dir_first_cluster, blocks_need, block_size) == -1) {
+		printf("can't write to disk\n");
+		free_dir(entry.parent);
+		return -1;
+	}
+
+	free_dir(entry.parent);
+	
+	return 0;
+}
+
+
+
+
+
 // Function to check if the given filename corresponds to a regular file
 int fs_isFile(char *filename)
 {
