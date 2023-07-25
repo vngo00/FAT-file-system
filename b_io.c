@@ -170,20 +170,72 @@ b_io_fd b_open (char * filename, int flags)
 	}
 
 
+
+
 // Interface to seek function	
 int b_seek (b_io_fd fd, off_t offset, int whence)
-	{
-	if (startup == 0) b_init();  //Initialize our system
+{
+    if (startup == 0) b_init();  // Initialize our system
 
-	// check that fd is between 0 and (MAXFCBS-1)
-	if ((fd < 0) || (fd >= MAXFCBS))
-		{
-		return (-1); 					//invalid file descriptor
-		}
-		
-		
-	return (0); //Change this
-	}
+    // Check that fd is between 0 and (MAXFCBS-1)
+    if ((fd < 0) || (fd >= MAXFCBS))
+    {
+        return (-1); // Invalid file descriptor
+    }
+
+    // Check if offset is valid
+    if (offset < 0)
+    {
+        return (-1); // Invalid offset
+    }
+
+    // Determine new file position according to the directive `whence`
+    switch (whence)
+    {
+        case SEEK_SET:
+            // Seek from the beginning of the file
+            if (offset <= fcbArray[fd].fi->file_size) {
+                fcbArray[fd].file_size_index = offset;
+            } else {
+                return (-1); // Invalid offset
+            }
+            break;
+
+        case SEEK_CUR:
+            // Seek from the current position in the file
+            if ((fcbArray[fd].file_size_index + offset) <= fcbArray[fd].fi->file_size) {
+                fcbArray[fd].file_size_index += offset;
+            } else {
+                return (-1); // Invalid offset
+            }
+            break;
+
+        case SEEK_END:
+            // Seek from the end of the file
+            if (offset <= fcbArray[fd].fi->file_size) {
+                fcbArray[fd].file_size_index = fcbArray[fd].fi->file_size - offset;
+            } else {
+                return (-1); // Invalid offset
+            }
+            break;
+
+        default:
+            return (-1); // Invalid whence
+    }
+
+    // After setting the file index, calculate the current location in blocks
+    fcbArray[fd].current_location = fcbArray[fd].fi->location + (fcbArray[fd].file_size_index / bytes_per_block);
+
+    // Calculate the index within the block
+    fcbArray[fd].index = fcbArray[fd].file_size_index % bytes_per_block;
+
+    // The buffer might be invalid now, so it resets buflen to 0.
+    fcbArray[fd].buflen = 0;
+
+	// Return the offset from the beginning
+    return fcbArray[fd].file_size_index; 
+}
+
 
 
 
@@ -223,6 +275,8 @@ int b_write (b_io_fd fd, char * buffer, int count)
 //  |             |                                                |        |
 //  | Part1       |  Part 2                                        | Part3  |
 //  +-------------+------------------------------------------------+--------+
+
+
 int b_read (b_io_fd fd, char * buffer, int count)
 	{
 
