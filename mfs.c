@@ -483,10 +483,7 @@ int fs_mkdir(const char *pathname, mode_t mode)
 
 
 int fs_rmdir(const char *pathname) {
-	if (fs_isFile(strdup(pathname))) {
-		printf("[RMDIR] file\n");
-		return -1;
-	}
+
 
 	parsed_entry entry;
 	if (parse_directory_path(strdup(pathname), &entry) == -1) {
@@ -498,6 +495,11 @@ int fs_rmdir(const char *pathname) {
 	if (entry.index == -1 || entry.parent == NULL) {
 		printf("[RMDIR] dir not exist\n");
 		free_dir(entry.parent);
+		return -1;
+	}
+	if (fs_isFile(strdup(pathname))) {
+		free_dir(entry.parent);
+		printf("[RMDIR] file\n");
 		return -1;
 	}
 	if (strcmp(entry.name, "") == 0 || strcmp(entry.name, "/") == 0) {
@@ -601,16 +603,13 @@ int fs_mkfile(char *filename) {
 
 	if (strcmp(entry.name, "") == 0) {
 		printf("[MKFILE] name ?\n");
+		free_dir(entry.parent);
 		return -1;
 	}
 
-	if (entry.index != -1) {
+	if (entry.index != -1 || entry.parent == NULL) {
 		printf("[MKFILE] %s already exists\n", entry.name);
-		return -1;
-	}
-
-	if (entry.parent == NULL) {
-		printf("[MKFILE] error\n");
+		free_dir(entry.parent);
 		return -1;
 	}
 
@@ -626,13 +625,11 @@ int fs_mkfile(char *filename) {
 	int blocks_need = (entry.parent[0].dir_file_size + block_size -1) / block_size;
 	if (write_to_disk(entry.parent, entry.parent[0].dir_first_cluster, blocks_need, block_size) == -1) {
 		printf("[MKFILE] failed to make file\n");
+		free_dir(entry.parent);
 		return -1;
 	}
-
-	if (entry.parent != root_directory && entry.parent != current_directory) {
-		free(entry.parent);
-		entry.parent = NULL;
-	}
+	
+	free_dir(entry.parent);
 
 
 	return 0;
@@ -650,15 +647,15 @@ int fs_delete(char *filename)
 {
 
     // if not file do no delet
-    if (fs_isDir(strdup(filename)))
+    if (fs_isDir(strdup(filename)) == 1)
     {
         printf("Can't delete a directory\n");
+	return -1;
     }
     
     // grab the directory entry of the file
     parsed_entry entry;
     if (parse_directory_path(strdup(filename), &entry) == -1) {
-	    printf("[FS DELETE] %s does not exists\n", entry.name);
 	    return -1;
     }
 
@@ -709,7 +706,7 @@ int fs_delete(char *filename)
 fdDir *fs_opendir(const char *pathname)
 {
     // check if pathname is a directory or a file
-    if (fs_isFile(strdup(pathname)))
+    if (fs_isFile(strdup(pathname)) == 1)
     {
         printf("not a directory\n");
         return NULL;
