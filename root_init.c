@@ -288,17 +288,6 @@ Directory_Entry * init_directory(uint64_t block_size, Directory_Entry *parent, c
 	
 	strcpy(entries[0].dir_name, ".");
 	entries[0].dir_file_size = min_bytes_needed;
-	//entries[0].dir_first_cluster = allocate_blocks(blocks_need); 
-	//
-	//
-	//
-	//
-	//
-	//testing for root
-	//
-	//
-	//
-	//
 	entries[0].dir_first_cluster = allocate_blocks(blocks_need); // testing for root
 	entries[0].dir_attr |= (IS_ACTIVE | IS_DIR);
 

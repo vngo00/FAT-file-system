@@ -123,8 +123,14 @@ b_io_fd b_open (char * filename, int flags)
 	//
 	//
 	if (filename == NULL) return -1;	
-	if ( (flags & O_CREAT) && (flags & O_RDONLY)) return -1;
-	if ( (flags & O_RDONLY) && (flags & O_TRUNC)) return -1;
+	if ( (flags & O_RDONLY) ) {
+		if ( (flags & O_TRUNC) || (flags & O_CREAT) || (flags & O_APPEND) || (flags & O_RDWR) ) {
+			return -1;
+		}
+	}
+
+	if ( (flags & O_WRONLY) && (flags & O_RDWR) ) return -1;
+	if ( (flags & O_TRUNC) && (flags & O_APPEND) ) return 1;
 
 	if (startup == 0) b_init();  //Initialize our system
 	
@@ -163,9 +169,13 @@ b_io_fd b_open (char * filename, int flags)
 	fcbArray[returnFd].buflen = 0;
 	fcbArray[returnFd].current_location = fcbArray[returnFd].fi->location;
 	fcbArray[returnFd].blocks_read = 0;
-	fcbArray[returnFd].blocks_read = 0;
 	fcbArray[returnFd].file_size_index = 0;
 	fcbArray[returnFd].flags = flags;
+	if ( (flags & O_APPEND) ) { // if append move the pointer to end of file
+		fcbArray[returnFd].current_location = get_last_block(fcbArray[returnFd].fi->location);
+		fcbArray[returnFd].blocks_read = fcbArray[returnFd].fi->bblocks;
+		fcbArray[returnFd].file_size_index = fcbArray[returnFd].fi->file_size;
+	}
 	return (returnFd);						// all set
 	}
 
