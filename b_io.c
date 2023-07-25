@@ -36,9 +36,9 @@ typedef struct file_info {
 } file_info;
 
 file_info * get_file_info(char *fname) {
-
-	if (fs_isDir(fname)) return NULL;
-
+	if (fs_isDir(fname) == 1) {
+		return NULL;
+	}
 	parsed_entry entry;
 	if ( parse_directory_path(fname, &entry) == -1) {
 		printf(" get fileinffo %s does not exists", entry.name);
@@ -49,7 +49,6 @@ file_info * get_file_info(char *fname) {
 		printf(" get fileinfo invalid file\n");
 		return NULL;
 	}
-
 	file_info *finfo = malloc(sizeof(file_info));
 	if (entry.index != -1) {
 		strcpy(finfo->file_name, entry.parent[entry.index].dir_name);
