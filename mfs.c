@@ -616,7 +616,7 @@ int fs_mkfile(char *filename) {
 
 	int index = get_empty_entry(entry.parent);
 	strncpy(entry.parent[index].dir_name, entry.name, NAME_MAX_LENGTH);
-	int blocks = 70;
+	int blocks = 1;
 	entry.parent[index].dir_first_cluster = allocate_blocks(blocks);
 	entry.parent[index].dir_attr |= IS_ACTIVE;
 	printf("[MKFILE] file location: %d\n", entry.parent[index].dir_first_cluster);
