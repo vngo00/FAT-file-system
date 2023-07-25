@@ -100,6 +100,24 @@ char *fs_getcwd(char *path, size_t size)
 
 int fs_setcwd(char *path)
 {
+    parsed_entry entry;
+
+    if ( parse_directory_path(path, &entry) == -1) {
+		printf("[ FS SETCWD ]: No such file or directory.\n");
+		return -1;
+	}
+    
+    if (!fs_isDir(path)){
+        printf("[ FS SETCWD ]: Not a directory\n");
+        return -1;
+    }
+
+    Directory_Entry* target = get_target_directory(entry.parent[entry.index]);
+    current_directory = target;
+   
+    return 0;
+
+    /*
     char *new_cwd = NULL;
 
     if (strcmp(path, "..") == 0)
@@ -150,6 +168,7 @@ int fs_setcwd(char *path)
     printf("[ FS SETCWD ]: Set cwd to new_cwd.\n");
 
     return 0;
+    */
 }
 
 // This helper function checks whether the given attribute represents a directory.
