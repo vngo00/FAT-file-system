@@ -108,11 +108,6 @@ int fs_setcwd(char *path)
 		return -1;
 	}
     
-    if (!fs_isDir(path)){
-        printf("[ FS SETCWD ]: Not a directory\n");
-        free_dir(entry.parent);
-        return -1;
-    }
 
     if (entry.index == -1 || entry.parent == NULL) {
 		printf("[ FS SETCWD ] Directory does not exist within current directory\n");
@@ -120,9 +115,18 @@ int fs_setcwd(char *path)
 		return -1;
 	}
 
-   
+    if (!fs_isDir(path)){
+        printf("[ FS SETCWD ]: Not a directory\n");
+        free_dir(entry.parent);
+        return -1;
+    }
+
+    Directory_Entry* temp = current_directory;
     Directory_Entry* target = get_target_directory(entry.parent[entry.index]);
+    if (target == NULL) return -1;
     current_directory = target;
+    
+    free_dir(temp);
    
     return 0;
 
@@ -557,7 +561,9 @@ int fs_rmdir(const char *pathname) {
 // Function to check if the given filename corresponds to a regular file
 int fs_isFile(char *filename)
 {
-	return !fs_isDir(filename);
+	int ret = fs_isDir(filename);
+	if (ret == -1) return ret;
+	return !ret;
 }
 
 // Function to check if the given pathname corresponds to a directory or not
