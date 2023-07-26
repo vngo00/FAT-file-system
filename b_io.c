@@ -246,12 +246,6 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
         return (-1); // Invalid file descriptor
     }
 
-    // Check if offset is valid
-    if (offset < 0)
-    {
-        return (-1); // Invalid offset
-    }
-
     // Determine new file position according to the directive `whence`
     switch (whence)
     {
