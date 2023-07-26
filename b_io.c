@@ -22,7 +22,7 @@
 #include <fcntl.h>
 #include "b_io.h"
 #include "mfs.h"
-
+#include "FAT.h"
 // Maximum number of file descriptors that can be open at the same time in the system.
 #define MAXFCBS 20
 
@@ -32,7 +32,7 @@
 // Global variable.
 extern int bytes_per_block;
 
-
+int get_last_block(int location);
 
 typedef struct file_info {
 	char file_name[NAME_MAX_LENGTH];	// file name
@@ -226,7 +226,7 @@ b_io_fd b_open (char * filename, int flags)
 	fcbArray[returnFd].flags = flags;
 	if ( (flags & O_APPEND) ) { // if append move the pointer to end of file
 		fcbArray[returnFd].current_location = get_last_block(fcbArray[returnFd].fi->location);
-		fcbArray[returnFd].blocks_read = fcbArray[returnFd].fi->bblocks;
+		fcbArray[returnFd].blocks_read = fcbArray[returnFd].fi->blocks;
 		fcbArray[returnFd].file_size_index = fcbArray[returnFd].fi->file_size;
 	}
 	return (returnFd);						// all set
@@ -373,3 +373,14 @@ int b_close (b_io_fd fd)
 
 	return 0;
 	}
+
+
+int get_last_block(int location) {
+	int prev = -1;
+	int curr = location;
+	while (curr != -1) {
+		prev = curr;
+		curr = get_next_block(curr);
+	}
+	return prev;
+}

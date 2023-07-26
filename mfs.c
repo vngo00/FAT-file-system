@@ -33,7 +33,7 @@ int get_empty_entry(Directory_Entry * parent);
 void free_dir(Directory_Entry *dir);
 int is_dir(Directory_Entry entry);
 
-
+/*
 
 // This function builds an absolute path from the current directory and the provided pathname.
 char *build_absolute_path(const char *pathname)
@@ -88,6 +88,10 @@ char *build_absolute_path(const char *pathname)
 
     return buf;
 }
+
+*/
+
+
 // This function changes the current working directory to the specified path.
 // It allows us to navigate to a different directory within the file system.
 char *fs_getcwd(char *path, size_t size)
@@ -184,12 +188,15 @@ int fs_setcwd(char *path)
     */
 }
 
+/*
 // This helper function checks whether the given attribute represents a directory.
 // It returns 1 if the attribute indicates a directory, and 0 otherwise.
 int check_directory_attribute(int attribute)
 {
     return ((attribute >> 4) & 1);
 }
+
+*/
 
 // This function searches for a directory entry that matches the provided token (directory name)
 // within the given array of directory entries (current_dir_ent).
