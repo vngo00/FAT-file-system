@@ -23,48 +23,101 @@
 #include "b_io.h"
 #include "mfs.h"
 
+// Maximum number of file descriptors that can be open at the same time in the system.
 #define MAXFCBS 20
+
+// Size of the chunks that the system will use to read from or write to the files.
 #define B_CHUNK_SIZE 512
 
+// Global variable.
 extern int bytes_per_block;
 
+
+
 typedef struct file_info {
-	char file_name[NAME_MAX_LENGTH];	//file name
-	int file_size;				// file size in bytes
-	int location;				// starting logical block in disk
-	int blocks;				// total blocks of file in disk
+	char file_name[NAME_MAX_LENGTH];	// file name
+	int file_size;						// file size in bytes
+	int location;						// starting logical block in disk
+	int blocks;							// total blocks of file in disk
 } file_info;
 
+
+/**
+ * The function retrieves the information of a file given its name.
+ *
+ * @param fname - A pointer to a string containing the name of the file.
+ *                This string is expected to include the file's complete path in the file system.
+ *                
+ * @return - On success, this function returns a pointer to a `file_info` struct.
+ * 		   - If fname is a directory, it returns NULL.
+ */
 file_info * get_file_info(char *fname) {
+	// Check if the given path is a directory.
 	if (fs_isDir(fname) == 1) {
+		// If path is a directory, exits get_file_info returning NULL.
 		return NULL;
 	}
+
+	// Declare an instance of parsed_entry struct to hold the parsed 
+	// information of the directory path.
 	parsed_entry entry;
+
+	// Statement to indicate the directory path does not exist.
+	// If parse function returns -1, exits get_file_info returning NULL.
 	if ( parse_directory_path(fname, &entry) == -1) {
 		printf(" get fileinffo %s does not exists", entry.name);
 		return NULL;
 	}
 
+	// Checks if the parent directory of file exists.
+	// If parent directory does not exist, exits get_file_info returning NULL.
 	if (entry.parent == NULL) {
 		printf(" get fileinfo invalid file\n");
 		return NULL;
 	}
+
+	// Allocate memory on the heap to create a new file_info object.
 	file_info *finfo = malloc(sizeof(file_info));
+
+	// Checks if malloc was successful in allocating memory.
+	// exits get_file_info returning NULL.
+	if (finfo == NULL) {
+    	printf("Memory allocation failed\n");
+    	return NULL;
+	}
+
+	// If entry has a valid index, file or directory exists.
 	if (entry.index != -1) {
+
+		// Copy the file or directory name from the entry to the finfo.
 		strcpy(finfo->file_name, entry.parent[entry.index].dir_name);
+
+		// Set the file size in finfo to the size in entry.
 		finfo->file_size = entry.parent[entry.index].dir_file_size;
+
+		// Set the location of the file or directory in finfo to the first cluster number in entry.
 		finfo->location = entry.parent[entry.index].dir_first_cluster;
+
+		// Number of blocks occupied by the file or directory.
 		int blocks = (finfo->file_size + bytes_per_block -1) / bytes_per_block;
+
+		// Set the number of blocks in finfo.
 		finfo->blocks = blocks;
 	} else {
+
+		// If entry index is -1, it's not a valid file or directory,
+		// so it sets the name in finfo to an empty string.
 		strcpy(finfo->file_name, "");
 	}
 
+	// If the parent of the parsed entry is not the root directory or the current directory,
+	// free the memory allocated for the parent.
 	if (entry.parent != root_directory && entry.parent != current_directory) {
 		free(entry.parent);
+		// After freeing memory set the pointer to NULL to avoid dangling pointers.
 		entry.parent = NULL;
 	}
-
+	// Returns file_info structure that contains information about the file or directory.
 	return finfo;
 }
 
