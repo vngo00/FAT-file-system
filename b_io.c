@@ -250,46 +250,59 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
     switch (whence)
     {
         case SEEK_SET:
-            // Seek from the beginning of the file
-            if (offset <= fcbArray[fd].fi->file_size) {
-                fcbArray[fd].file_size_index = offset;
-            } else {
-                return (-1); // Invalid offset
-            }
-            break;
+			// Seek from the beginning of the file
+			if (offset >= 0 && offset <= fcbArray[fd].fi->file_size) {
+				fcbArray[fd].file_size_index = offset;
+			} else if (offset < 0 && -offset <= fcbArray[fd].fi->file_size) {
+				// if offset is negative, it moves backwards from end
+				fcbArray[fd].file_size_index = fcbArray[fd].fi->file_size + offset; 
+			} else {
+				return (-1); // Invalid offset
+			}
+			break;
 
         case SEEK_CUR:
-            // Seek from the current position in the file
-            if ((fcbArray[fd].file_size_index + offset) <= fcbArray[fd].fi->file_size) {
-                fcbArray[fd].file_size_index += offset;
-            } else {
-                return (-1); // Invalid offset
-            }
-            break;
+			// Calculate the new offset
+			off_t new_offset = fcbArray[fd].file_size_index + offset;
+
+			// Check if the new offset is valid
+			if ((new_offset >= 0) && (new_offset <= fcbArray[fd].fi->file_size)) {
+				fcbArray[fd].file_size_index = new_offset;
+			} else {
+				return (-1); // Invalid offset
+			}
+			break;
 
         case SEEK_END:
-            // Seek from the end of the file
-            if (offset <= fcbArray[fd].fi->file_size) {
-                fcbArray[fd].file_size_index = fcbArray[fd].fi->file_size - offset;
-            } else {
-                return (-1); // Invalid offset
-            }
-            break;
+			// Seek from the end of the file
+			if (offset <= 0 && -offset <= fcbArray[fd].fi->file_size) {
+				fcbArray[fd].file_size_index = fcbArray[fd].fi->file_size + offset; // offset is expected to be negative or zero here
+			} else if (offset > 0 && offset <= fcbArray[fd].fi->file_size) {
+				fcbArray[fd].file_size_index = offset; // if offset is positive, it moves forward from beginning
+			} else {
+				return (-1); // Invalid offset
+			}
+			break;
 
         default:
             return (-1); // Invalid whence
     }
 
-    // After setting the file index, calculate the current location in blocks
-    fcbArray[fd].current_location = fcbArray[fd].fi->location + (fcbArray[fd].file_size_index / bytes_per_block);
-
-    // Calculate the index within the block
+    // Calculate block and index within the block for the new position
+    int block_num = fcbArray[fd].file_size_index / bytes_per_block;
     fcbArray[fd].index = fcbArray[fd].file_size_index % bytes_per_block;
+    
+    // Traverse through FAT table to get to the correct block
+    int current_location = fcbArray[fd].fi->location;
+    for (int i = 0; i < block_num; i++) {
+        current_location = get_next_block(current_location);
+    }
+    fcbArray[fd].current_location = current_location;
 
-    // The buffer might be invalid now, so it resets buflen to 0.
-    fcbArray[fd].buflen = 0;
+    // Refresh buffer with the new block data
+    fcbArray[fd].buflen = read_block(fcbArray[fd].buf, fcbArray[fd].current_location);
 
-	// Return the offset from the beginning
+    // Return the offset from the beginning
     return fcbArray[fd].file_size_index; 
 }
 
@@ -377,4 +390,45 @@ int get_last_block(int location) {
 		curr = get_next_block(curr);
 	}
 	return prev;
+}
+
+int main() {
+
+    b_init(); // Initialize the file system
+    
+    // Try opening a file
+    b_io_fd fd = b_open("test.txt", O_RDWR);
+    if (fd < 0) {
+        printf("Error opening the file\n");
+        return -1;
+    }
+
+    // Test SEEK_SET
+    int offset = b_seek(fd, 100, SEEK_SET);
+    if (offset != 100) {
+        printf("Error seeking to offset 100 from beginning of file. Returned offset: %d\n", offset);
+    } else {
+        printf("Successfully sought to offset 100 from beginning of file.\n");
+    }
+
+    // Test SEEK_CUR
+    offset = b_seek(fd, 50, SEEK_CUR);
+    if (offset != 150) {
+        printf("Error seeking to offset 50 from current position. Returned offset: %d\n", offset);
+    } else {
+        printf("Successfully sought to offset 50 from current position.\n");
+    }
+
+    // Test SEEK_END
+    offset = b_seek(fd, -50, SEEK_END);
+    if (offset != fcbArray[fd].fi->file_size - 50) { // You should replace this with the correct file size
+        printf("Error seeking to offset 50 from end of file. Returned offset: %d\n", offset);
+    } else {
+        printf("Successfully sought to offset 50 from end of file.\n");
+    }
+
+    // Close the file
+    b_close(fd);
+
+    return 0;
 }
