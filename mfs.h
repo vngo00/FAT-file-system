@@ -89,6 +89,7 @@ int fs_isFile(char * filename);	//return 1 if file, 0 otherwise
 int fs_isDir(char * pathname);		//return 1 if directory, 0 otherwise
 int fs_delete(char* filename);	//removes a file
 int fs_mkfile(char *filename); // make a file
+int fs_mvFile(char *filename, char *pathname);
 // extra handlers 
 char* build_absolute_path(const char *pathname) ;
 

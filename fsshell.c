@@ -365,8 +365,19 @@ int cmd_cp (int argcnt, char *argvec[])
 int cmd_mv (int argcnt, char *argvec[])
 	{
 #if (CMDMV_ON == 1)				
-	return -99;
 	// **** TODO ****  For you to implement	
+	if (argcnt != 3) {
+		printf("Usage: mv path path\n");
+		return -1;
+	}
+
+	int source_type = fs_isFile(argvec[1]);
+	int dest_type = fs_isFile(argvec[2]);
+
+	if ( source_type == 1 && dest_type == 0) {
+		return (fs_mvFile(argvec[1], agrvec[2]));
+	}
+	printf("invalid %s or %s\n", argvec[1], argvec[2]);
 #endif
 	return 0;
 	}

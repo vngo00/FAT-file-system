@@ -643,9 +643,74 @@ int fs_mkfile(char *filename) {
 }
 
 
+int fs_mvFile(char *filename, char *pathname) {
+
+	if ( fs_isDir(filename) == 1) {
+		return -1;
+	}
+
+	parsed_entry source;
+	if ( parse_directory_path (filename, &source) == -1) {
+		printf("[MVFILE] invalid path\n");
+		return -1;
+	}
+
+	if ( source.index == -1 || source.parent == NULL) {
+		printf("[MVILFE] %s does not exist\n", source.name);
+		freer_dir(source.parent);
+		return -1;
+	}
+
+	if (fs_isFile(pathname) == 1) {
+		printf(" [MVILFE] a file\n");
+		return -1;
+	}
+
+	parsed_entry destination;
+	if (parse_directory_path(pathname, &destination) == -1) {
+		printf("[MVFILE] invalid path\n");
+		free_dir(destination.parent);
+		return -1;
+	}
+
+	if (destination.index == -1 || destination.parent == NULL) {
+		free_dir(destination.parent);
+		printff("[MFILE] dir does not exists\n");
+		return -1;
+	}
+
+	Directory_Entry * dest_dir = get_target_directory(destination.parent[destination.index]);
+	if ( strcmp(dest_dir[0].path, source.parent[0].path == 0) ) { // same dir
+		printf("[MVFILE] same dir\n");
+		free_dir(source.parent);
+		free_dir(destination.parent);
+		free_dir(dest_dir);
+	}
+
+	int index = get_empty_entry(dest_dir);
+	int block_size = bytes_per_block;
+	int blocks_need = (dest_dir[0].dir_file_size + block_size - 1) / block_size;
+
+	// start the moving process
+	strcpy(dest_dir[index].dir_name, source.name);
+	dest_dir[index].dir_file_size = source.parent[source.index].dir_file_size;
+	dest_dir[index].dir_first_cluster = source.parent[source.index].dir_first_cluster;
+	dest_dir[index].dir_attr = source.parent[source.index].dir_attr;
+
+	free_dir(source.parent);
+	free_dir(destination.parent);
+
+	if (write_to_disk(dest_dir, dest_dir[0].dir_first_cluster, blocks_need, block_size) == -1) {
+		printf("[MVFILE] failed to write to disk\n");
+		return -1;
+	}
+
+	free_dir(dest_dir);
 
 
+	return 0;
 
+}
 
 
 
