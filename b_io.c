@@ -284,6 +284,7 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 		}
 		break;
 
+	/*
 	case SEEK_CUR:
 		// Calculate the new offset
 		off_t new_offset = fcbArray[fd].file_size_index + offset;
@@ -298,7 +299,7 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 			return (-1); // Invalid offset
 		}
 		break;
-
+	*/
 	case SEEK_END:
 		// Seek from the end of the file
 		if (offset <= 0 && -offset <= fcbArray[fd].fi->file_size)
@@ -332,7 +333,8 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 	fcbArray[fd].current_location = current_location;
 
 	// Refresh buffer with the new block data
-	fcbArray[fd].buflen = read_block(fcbArray[fd].buf, fcbArray[fd].current_location);
+	//fcbArray[fd].buflen = read_block(fcbArray[fd].buf, fcbArray[fd].current_location);
+	fcbArray[fd].buflen = 0;
 
 	// Return the offset from the beginning
 	return fcbArray[fd].file_size_index;
@@ -514,7 +516,8 @@ int get_last_block(int location)
 	return prev;
 }
 
-int main()
+//TEMP FIX CHANGE LATER, ERROR MSG 'multiple definition', 'first defined here'
+inline int main()
 {
 
 	b_init(); // Initialize the file system
