@@ -129,67 +129,6 @@ Directory_Entry *get_target_directory(Directory_Entry entry)
     return ret;
 }
 
-// This function parses a directory path and finds the corresponding directory entry.
-// It takes a path and a target parameter as input.
-// If the provided path is NULL, the function prints an error message and returns NULL.
-// Otherwise, it searches for the directory entry that matches the path.
-// If a matching directory entry is found, it returns a pointer to the directory entry.
-// If no matching directory entry is found or an error occurs, it returns NULL.
-// Directory_Entry* parse_directory_path(const char* path) {
-//     printf("[ PARSE DIRECTORY PATH ] : Parsing directory path, path: %s\n", path);
-//     if (!path) {
-//         printf("[ PARSE DIRECTORY PATH ] : NULL path detected.\n");
-//         return NULL;
-//     }
-//     if (strcmp(path, "/") == 0) {
-//         printf("[ PARSE DIRECTORY PATH ] : Root directory detected.\n");
-
-//         Directory_Entry* root_copy = malloc(sizeof (Directory_Entry));
-//         if (!root_copy) {
-//             printf("[ PARSE DIRECTORY PATH ] : Failed to allocate memory.\n");
-//             return NULL;
-//         }
-//         LBAread(root_copy, 1, vcb->root_cluster);
-//         return root_copy;
-//     }
-
-//     Directory_Entry* current_dir_ent = malloc(sizeof (Directory_Entry));
-//     char* temp = malloc(strlen(path) + 1);
-//     if (!current_dir_ent || !temp) {
-//         printf("[ PARSE DIRECTORY PATH ] : Failed to allocate memory.\n");
-//         free(current_dir_ent);
-//         free(temp);
-//         return NULL;
-//     }
-
-//     printf("[ PARSE DIRECTORY PATH ] : Copying root directory and path...\n");
-//     memcpy(current_dir_ent, root_directory, 512);
-//     strcpy(temp, path);
-
-//     printf("[ PARSE DIRECTORY PATH ] : Starting tokenization...\n");
-//     char* token = strtok(temp, "/");
-//     Directory_Entry* retVal = NULL;
-
-//     while (token != NULL) {
-
-// 	//
-// 	////
-// 	//// fix retVal
-// 	//
-
-//         retVal =NULL;// get_target_directory(current_dir_ent, token);
-//         if (!retVal) {
-//             printf("[ PARSE DIRECTORY PATH ] : No match found. Returning NULL.\n");
-//             break;
-//         }
-//         token = strtok(NULL, "/");
-//         current_dir_ent = retVal;
-//     }
-
-//     free(temp);
-//     return retVal;
-// }
-
 int find_target_entry(Directory_Entry *current_dir_ent, char *token)
 {
 
@@ -251,21 +190,6 @@ int parse_directory_path(char *path, parsed_entry *entry) {
 	entry->index = index;
 	return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*
 int parse_directory_path(char *path, parsed_entry *parent_dir)
