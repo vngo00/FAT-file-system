@@ -515,10 +515,14 @@ int b_write(b_io_fd fd, char *buffer, int count)
  */
 int b_read(b_io_fd fd, char *buffer, int count)
 {
+	// Initialize variables to calculate how much data can be filled from the buffer.
 	int part1, part2, part3;
 	int remainingBytes = B_CHUNK_SIZE - fcbArray[fd].index;
 	int blocksToCopy;
 	int bytesRead;
+
+	// Check if the file system has been initialized. 
+	// If not, call b_init() to initialize it.
 	if (startup == 0)
 		b_init(); // Initialize our system
 
@@ -542,6 +546,7 @@ int b_read(b_io_fd fd, char *buffer, int count)
 		printf("[b_ioc -> b_read] Had to reduce count");
 	}
 
+	// Calculate how many bytes can be filled in multiples of the block size.
 	if (remainingBytes >= count)
 	{
 		part1 = remainingBytes;
@@ -550,58 +555,104 @@ int b_read(b_io_fd fd, char *buffer, int count)
 	}
 	else
 	{
+		// // Set part1 to the remaining bytes in the current buffer.
 		part1 = remainingBytes;
+
+		// Calculates how many bytes need to be read.
 		part3 = count - remainingBytes;
 		blocksToCopy = part3 / B_CHUNK_SIZE;
 		part2 = blocksToCopy * B_CHUNK_SIZE;
+
+		// Calculates the remaining bytes after filling part1 and part2.
 		part3 = part3 - part2;
 	}
 
+	// If there are bytes remaining in the buffer, copy them to the user's buffer.
 	if (part1 > 0)
-	{
+	{	
+		// Copy part1 number of bytes from the current position in the buffer
+		// to the user's buffer, starting at the address pointed by buffer.
 		memcpy(buffer, fcbArray[fd].buf + fcbArray[fd].index, part1);
+
+		// Moves the buffer index forward by part1 number of bytes.
 		fcbArray[fd].index = fcbArray[fd].index + part1;
+
+		// Updates the file offset by adding the number of bytes read,
+		// to keep track of the current position in the file.
 		fcbArray[fd].file_size_index += part1;
+
+		// Increase the buffer length by part1, 
+		// the buffer now has part1 more valid bytes.
 		fcbArray[fd].buflen += part1;
 	}
 
+	//  If there are blocks to be read, read them and copy to the user's buffer.
 	if (part2 > 0)
-	{
+	{	
+		// Keeps track of the number of bytes copied in part2.
 		int tempPart2 = 0;
+
+		// Number of blocks read from the disk.
 		int blocks_read = 0;
+
+		// Loop to copy the number of blocks into the user's buffer.
 		for (int i = 0; i < blocksToCopy; i++)
 		{
-			// need next block
+			// Update the current_location to the logical block number of the next block.
 			fcbArray[fd].current_location = get_next_block(fcbArray[fd].current_location);
+
+			// Check if the end of file has been reached.
 			if (fcbArray[fd].current_location == -1)
 			{
 				printf("[b_io.c -> b_read] reached EOF in part2");
 			}
+
+			// Read the block from the disk into the user's buffer.
 			blocks_read = LBAread(buffer + part1 + tempPart2, 1, fcbArray[fd].current_location);
+
+			
 			bytesRead = blocks_read * B_CHUNK_SIZE;
+
+			// Update the blocks_read field in the fcbArray to keep track of how many blocks have been read.
 			fcbArray[fd].blocks_read++;
+
+			// Update the buffer index, current file offset, and blocks_read in the fcbArray for the next iteration.
 			fcbArray[fd].buflen = 0;
 			fcbArray[fd].index = 0;
 			fcbArray[fd].file_size_index += B_CHUNK_SIZE;
+
+			// Update the total bytes read in part2.
 			tempPart2 = tempPart2 + bytesRead;
 			part2 = tempPart2;
 		}
 	}
-
+	// If there are bytes remaining to be read, reads the next block and copy to the user's buffer
 	if (part3 > 0)
 	{
-		// need next block
+		// Update the current_location to the logical block number of the next block.
 		int bytes_readP3 = 0;
 		fcbArray[fd].current_location = get_next_block(fcbArray[fd].current_location);
+
+		// Check if the end of file has been reached.
 		if (fcbArray[fd].current_location == -1)
 		{
 			printf("[b_io.c -> b_read] reached EOF in part3");
 		}
+
+		// Read the block from the disk into the buffer in the fcbArray.
 		bytes_readP3 = LBAread(fcbArray[fd].buf, 1, fcbArray[fd].current_location);
+
+		// Convert the number of blocks read to the actual number of bytes read for part3.
 		bytes_readP3 = bytes_readP3 * B_CHUNK_SIZE;
+
+		// Update the total number of blocks read in the fcbArray for this iteration.
 		fcbArray[fd].blocks_read++;
-		fcbArray[fd].buflen = 0; // dont know about this var. it should be block_size
+
+		// Reset the buffer index and buflen in the fcbArray for part3.
+		fcbArray[fd].buflen = 0; 
 		fcbArray[fd].index = 0;
+
+		// Update the current file offset for part3.
 		fcbArray[fd].file_size_index += B_CHUNK_SIZE;
 		if (bytes_readP3 < part3)
 		{
@@ -609,16 +660,21 @@ int b_read(b_io_fd fd, char *buffer, int count)
 			printf("[b_io.c -> b_read] Bytes read less than part3");
 		}
 
+		// If bytes read in part3 are less than part3 it updates part3 to the actual bytes read.
 		if (part3 > 0)
-		{
-			memcpy(buffer + part1 + part2, fcbArray[fd].buf + fcbArray[fd].index, part3);
+		{	
+			// Copy the remaining bytes from the buffer to the user's buffer.
+			memcpy(buffer + part1 + part2, fcbArray[fd].buf+fcbArray[fd].index, part3);
+			
+
+			// Update the file offset and buffer length in the fcbArray for part3.
 			fcbArray[fd].index = fcbArray[fd].index + part1;
 			fcbArray[fd].file_size_index += part1;
 			fcbArray[fd].buflen += part1;
 		}
 	}
-
-	return part1 + part2 + part3; // Change this
+	// Returns the total number of bytes read from the file.
+	return part1+part2+part3; 
 }
 
 /**
