@@ -106,15 +106,21 @@ int check_directory_attribute(int attribute)
 Directory_Entry *get_target_directory(Directory_Entry entry)
 {
     // check if we want root or current dir
-    if ( strcmp(entry.path, "/") == 0)
+    if (strcmp(entry.path, "/") == 0)
         return root_directory;
     if (strcmp(entry.path, current_directory[0].path) == 0)
         return current_directory;
 
     // if not load it to memory
-    int block_size = bytes_per_block;
+
+	//Block_size and blocks_need are used to forumalate amount of memory needed
+	//for a the target directory to have
+    int block_size = bytes_per_block; 
     int blocks_need = (entry.dir_file_size + block_size - 1) / block_size;
     Directory_Entry *ret = malloc(blocks_need * block_size);
+
+	//Runs through read Disk which runs through the fat implementation of getNew
+	//Returns of successful or failure (-0,-1)
     if (read_from_disk(ret, entry.dir_first_cluster, blocks_need, block_size) == -1)
     {
         printf("[LOAD DIR] can't load dir\n");
