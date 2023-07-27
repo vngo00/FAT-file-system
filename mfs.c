@@ -905,14 +905,16 @@ void free_dir(Directory_Entry * dir) {
 
 int fs_renameDirectoryOrFile(const char *path, const *newName)
 {
-
 	parsed_entry entry;
 
+	//Check for if name exists as an already created file or directory
+	//Looks to see if the given path in newName is file/dir which would return 0
 	if (fs_isFile(newName) == 0 || fs_isDir(newName) == 0 ){
 			printf("[ FS RENAME ]: Name already exists.\n");
 			return -1;
     }
 
+	//Changes print statement based on whether it is a dir or file
 	if (fs_isDir(path)){
         printf("[ FS RENAME ]: Changing dir name of %s to %s\n", path, newName);
     }
@@ -920,19 +922,25 @@ int fs_renameDirectoryOrFile(const char *path, const *newName)
 		printf("[ FS RENAME ]: Changing file name of %s to %s\n", path, newName);
 	}
 
+	//Parses through path to build the path and send it over to entry struct
     if ( parse_directory_path(path, &entry) == -1) {
 		printf("[ FS RENAME ]: Invalid path.\n");
         free_dir(entry.parent);
 		return -1;
 	}
 
-
+	//Need to get the current Directory entry that you are changing the name for
+	//Entry struct containers the parent with with the correct index from running
+	//the parse_directory_path function
     Directory_Entry* target = get_target_directory(entry.parent[entry.index]);
+
+	//Needs to copy the user inputted name into the directory or file after correct checks
 	strcpy(entry.parent[entry.index].dir_name, newName);
 
+	//Immeditate clean of the entry after copying over
 	free_dir(entry.parent);
     return 0;
-	
+
 }
 
 
