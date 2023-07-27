@@ -34,7 +34,7 @@ extern int bytes_per_block;
 // Function declaration to find the last block in a chain of blocks.
 int get_last_block(int location);
 
-// Structure to store file information
+// Structure to store file information.
 typedef struct file_info
 {
 	char file_name[NAME_MAX_LENGTH]; // file name
@@ -131,6 +131,7 @@ file_info *get_file_info(char *fname)
 	return finfo;
 }
 
+// Definition of the File Control Block structure.
 typedef struct b_fcb
 {
 	/** TODO add al the information you need in the file control block **/
@@ -144,11 +145,14 @@ typedef struct b_fcb
 	int flags;			  // mark the purpose when open the file
 } b_fcb;
 
+// Declaration of the File Control Block array.
 b_fcb fcbArray[MAXFCBS];
 
 int startup = 0; // Indicates that this has not been initialized
 
-// Method to initialize our file system
+/**
+ * The function initializes the file system by setting up the File Control Block array.
+ */
 void b_init()
 {
 	// init fcbArray to all free
@@ -160,7 +164,12 @@ void b_init()
 	startup = 1;
 }
 
-// Method to get a free FCB element
+/**
+ * The function returns an available File Control Block (FCB) element index.
+ *
+ * @return - If there is a free FCB element, it returns the index of that element.
+ *         - If all FCB elements are in use, it returns -1 to indicate that all FCBs are occupied.
+ */
 b_io_fd b_getFCB()
 {
 	for (int i = 0; i < MAXFCBS; i++)
@@ -173,9 +182,15 @@ b_io_fd b_getFCB()
 	return (-1); // all in use
 }
 
-// Interface to open a buffered file
-// Modification of interface for this assignment, flags match the Linux flags for open
-// O_RDONLY, O_WRONLY, or O_RDWR
+/**
+ * The function opens a buffered file given its filename and flags.
+ *
+ * @param filename - A pointer to a string containing the name of the file to be opened.
+ * @param flags - An integer representing the access mode and file status flags for the file.
+ *
+ * @return - On success, this function returns the file descriptor associated with the opened file.
+ *         - If an error occurs during opening the file, it returns -1.
+ */
 b_io_fd b_open(char *filename, int flags)
 {	
 	// Stores the file descriptor of the opened file.
@@ -404,7 +419,20 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 	return fcbArray[fd].file_size_index;
 }
 */
-// Interface to write function
+
+
+
+/**
+ * The function writes data from the buffer to the buffered file associated
+ * with the given file descriptor.
+ *
+ * @param fd - The file descriptor of the buffered file where data will be written.
+ * @param buffer - A pointer to the buffer containing the data to be written.
+ * @param count - The number of bytes to be written from the buffer.
+ *
+ * @return - On success, the function returns the number of bytes written to the file.
+ *         - If an error occurs during writing, it returns -1.
+ */
 int b_write(b_io_fd fd, char *buffer, int count)
 {
 	if (startup == 0)
@@ -416,7 +444,6 @@ int b_write(b_io_fd fd, char *buffer, int count)
 		return (-1); // invalid file descriptor
 	}
 
-	
 
 	return (0); // Change this
 }
@@ -441,6 +468,20 @@ int b_write(b_io_fd fd, char *buffer, int count)
 //  | Part1       |  Part 2                                        | Part3  |
 //  +-------------+------------------------------------------------+--------+
 
+
+
+/**
+ * The function reads data from the buffered file associated with the given file descriptor
+ * and stores it in the buffer.
+ *
+ * @param fd - The file descriptor of the buffered file from which data will be read.
+ * @param buffer - A pointer to the buffer where the data will be stored.
+ * @param count - The number of bytes to be read from the file.
+ *
+ * @return - On success, the function returns the total number of bytes read from the file.
+ *         - If the end of file (EOF) is reached during reading, it returns the total number of bytes read until EOF.
+ *         - If an error occurs during reading, it returns -1.
+ */
 int b_read(b_io_fd fd, char *buffer, int count)
 {
 	int part1, part2, part3;
@@ -549,31 +590,75 @@ int b_read(b_io_fd fd, char *buffer, int count)
 	return part1+part2+part3; // Change this
 }
 
-// Interface to Close the file
+
+/**
+ * The function closes the buffered file associated with the given file descriptor.
+ *
+ * @param fd - The file descriptor of the buffered file to be closed.
+ *
+ * @return - On success, the function returns 0.
+ *         - If the file descriptor is invalid, it returns -1.
+ */
 int b_close(b_io_fd fd)
-{
+{	
+	// Check if the file descriptor is within valid range,if it's not,
+	// returns -1 to indicate an invalid file descriptor.
 	if ((fd < 0) || (fd >= MAXFCBS))
 	{
 		return -1;
 	}
+
+	// Free the memory associated with the file_info struct.
 	free(fcbArray[fd].fi);
+
+	// Set the pointer to the file_info struct to NULL to avoid accessing freed memory.
 	fcbArray[fd].fi = NULL;
+
+	// Free the memory associated with the buffer.
 	free(fcbArray[fd].buf);
+
+	// Set the pointer to the buffer to NULL.
 	fcbArray[fd].buf = NULL;
+
+	// Reset the current position in the buffer.
 	fcbArray[fd].index = 0;
+
+	// Reset the length of data in the buffer to zero.
 	fcbArray[fd].buflen = 0;
+
+	// Reset the current block location to zero.
 	fcbArray[fd].current_location = 0;
+
+	// Reset the number of blocks read to zero.
 	fcbArray[fd].blocks_read = 0;
+	
+	// Reset the file offset to zero.
 	fcbArray[fd].file_size_index = 0;
+
+	// Reset the flags associated with the file to zero.
 	fcbArray[fd].flags = 0;
 
+	// Returns 0 to indicate a successful closure of file.
 	return 0;
 }
 
+/**
+ * The function retrieves the last block number of a file given the location of a block in the file system.
+ *
+ * @param location - The location of a block in the file system.
+ *
+ * @return - The block number of the last block in the file (given its location).
+ */
 int get_last_block(int location)
-{
+{	
+	// Location of the previous block, initialized to -1.
 	int prev = -1;
+	// Current block location initialized with location.
 	int curr = location;
+
+	// Loop through the blocks until we reach the end.
+	// Keeps updating prev to store the location of the current block and moves 
+	// to the next block using get_next_block().
 	while (curr != -1)
 	{
 		prev = curr;
