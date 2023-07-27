@@ -299,7 +299,7 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 			return (-1); // Invalid offset
 		}
 		break;
-	*/
+	
 	case SEEK_END:
 		// Seek from the end of the file
 		if (offset <= 0 && -offset <= fcbArray[fd].fi->file_size)
@@ -339,7 +339,7 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 	// Return the offset from the beginning
 	return fcbArray[fd].file_size_index;
 }
-
+*/
 // Interface to write function
 int b_write(b_io_fd fd, char *buffer, int count)
 {
@@ -352,9 +352,11 @@ int b_write(b_io_fd fd, char *buffer, int count)
 		return (-1); // invalid file descriptor
 	}
 
+	
+
 	return (0); // Change this
 }
-*/
+
 // Interface to read a buffer
 
 // Filling the callers request is broken into three parts
