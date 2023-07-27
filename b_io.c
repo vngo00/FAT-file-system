@@ -251,7 +251,7 @@ b_io_fd b_open(char *filename, int flags)
 	}
 	return (returnFd); // all set
 }
-
+/*
 // Interface to seek function
 int b_seek(b_io_fd fd, off_t offset, int whence)
 {
@@ -352,7 +352,7 @@ int b_write(b_io_fd fd, char *buffer, int count)
 
 	return (0); // Change this
 }
-
+*/
 // Interface to read a buffer
 
 // Filling the callers request is broken into three parts
@@ -422,21 +422,27 @@ int b_read(b_io_fd fd, char *buffer, int count)
 		memcpy(buffer, fcbArray[fd].buf + fcbArray[fd].index, part1);
 		fcbArray[fd].index = fcbArray[fd].index + part1;
 		fcbArray[fd].file_size_index += part1;
+		fcbArray[fd].buflen += part1;
 	}
 
 	if (part2 > 0)
 	{
 		int tempPart2 = 0;
+		int blocks_read = 0;
 		for (int i = 0; i < blocksToCopy; i++)
 		{
 			// need next block
 			fcbArray[fd].current_location = get_next_block(fcbArray[fd].current_location);
+			if (fcbArray[fd].current_location == -1)
+			{
+				printf("[b_io.c -> b_read] reached EOF in part2");
+			}
+			blocks_read = LBAread(buffer + part1 + tempPart2, 1, fcbArray[fd].current_location);
+			bytesRead = blocks_read * B_CHUNK_SIZE;
 			fcbArray[fd].blocks_read++;
-			fcbArray[fd].buflen = 0; // dont know about this var. it should be block_size
+			fcbArray[fd].buflen = 0;
 			fcbArray[fd].index = 0;
 			fcbArray[fd].file_size_index += B_CHUNK_SIZE;
-
-			bytesRead = read_from_disk(buffer + part1 + tempPart2, fcbArray[fd].current_location, 1, B_CHUNK_SIZE);
 			tempPart2 = tempPart2 + bytesRead;
 			part2 = tempPart2;
 		}
@@ -445,16 +451,34 @@ int b_read(b_io_fd fd, char *buffer, int count)
 	if (part3 > 0)
 	{
 		// need next block
+		int bytes_readP3 = 0;
 		fcbArray[fd].current_location = get_next_block(fcbArray[fd].current_location);
+		if (fcbArray[fd].current_location == -1)
+		{
+			printf("[b_io.c -> b_read] reached EOF in part3");
+		}
+		bytes_readP3 = LBAread(fcbArray[fd].buf, 1, fcbArray[fd].current_location);
+		bytes_readP3 = bytes_readP3 * B_CHUNK_SIZE;
 		fcbArray[fd].blocks_read++;
 		fcbArray[fd].buflen = 0; // dont know about this var. it should be block_size
 		fcbArray[fd].index = 0;
 		fcbArray[fd].file_size_index += B_CHUNK_SIZE;
-		read_from_disk(fcbArray[fd].buf, fcbArray[fd].current_location, 1, B_CHUNK_SIZE);
-		// handle last part
+		if (bytes_readP3 < part3)
+		{
+			part3 = bytes_readP3;
+			printf("[b_io.c -> b_read] Bytes read less than part3");
+		}
+
+		if (part3 > 0)
+		{
+			memcpy(buffer + part1 + part2, fcbArray[fd].buf+fcbArray[fd].index, part3);
+			fcbArray[fd].index = fcbArray[fd].index + part1;
+			fcbArray[fd].file_size_index += part1;
+			fcbArray[fd].buflen += part1;
+		}
 	}
 
-	return (0); // Change this
+	return part1+part2+part3; // Change this
 }
 
 // Interface to Close the file
