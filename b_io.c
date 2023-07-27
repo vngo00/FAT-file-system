@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <stdlib.h> // for malloc
 #include <string.h> // for memcpy
+#include <stdbool.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -28,6 +29,7 @@
 
 // Size of the chunks that the system will use to read from or write to the files.
 #define B_CHUNK_SIZE 512
+
 
 // Global variable.
 extern int bytes_per_block;
@@ -192,7 +194,7 @@ b_io_fd b_getFCB()
  *         - If an error occurs during opening the file, it returns -1.
  */
 b_io_fd b_open(char *filename, int flags)
-{	
+{
 	// Stores the file descriptor of the opened file.
 	b_io_fd returnFd;
 
@@ -202,9 +204,9 @@ b_io_fd b_open(char *filename, int flags)
 
 	// Checks if the file is being opened in read-only mode.
 	if ((flags & O_RDONLY))
-	{	
-	// If any of the write-related flags are set, it means there is an attempt 
-	// to combine read-only with write-related operations, which is not allowed.
+	{
+		// If any of the write-related flags are set, it means there is an attempt
+		// to combine read-only with write-related operations, which is not allowed.
 		if ((flags & O_TRUNC) || (flags & O_CREAT) || (flags & O_APPEND) || (flags & O_RDWR))
 		{
 			return -1;
@@ -226,18 +228,17 @@ b_io_fd b_open(char *filename, int flags)
 		b_init(); // Initialize our system
 
 	// get our own file descriptor
-	returnFd = b_getFCB(); 
+	returnFd = b_getFCB();
 
 	// check for error - all used FCB's.
 	if (returnFd == -1)
 		return -1;
 
-
 	// Gets file information using get_file_info() for the specified filename.
 	fcbArray[returnFd].fi = (file_info *)get_file_info(filename);
 
 	// Check if the file information retrieval was successful.
-	// If fi is NULL, it means the get_file_info() returned NULL, 
+	// If fi is NULL, it means the get_file_info() returned NULL,
 	// indicating an error in retrieving file information.
 	if (fcbArray[returnFd].fi == NULL)
 	{
@@ -273,11 +274,11 @@ b_io_fd b_open(char *filename, int flags)
 		fcbArray[returnFd].fi = get_file_info(filename);
 	}
 
-	// If O_TRUNC flag is set, it means the file should be truncated and 
+	// If O_TRUNC flag is set, it means the file should be truncated and
 	// its content should be cleared.
 	// This step is to make sure that the file information is updated.
 	else if ((flags & O_TRUNC))
-	{	
+	{
 		// Delete the existing file from the file system to clear its content.
 		fs_delete(filename);
 		// Create a new empty file with the same name as the original file.
@@ -293,7 +294,7 @@ b_io_fd b_open(char *filename, int flags)
 	// Sets the index in the buffer to 0 to indicate that the buffer is initially empty.
 	fcbArray[returnFd].index = 0;
 
-	// Sets the buffer length to 0, to indicate that the buffer doesn't contain any 
+	// Sets the buffer length to 0, to indicate that the buffer doesn't contain any
 	// valid data yet.
 	fcbArray[returnFd].buflen = 0;
 
@@ -314,17 +315,17 @@ b_io_fd b_open(char *filename, int flags)
 
 	// Check if O_APPEND flag is set. That indicates the file is opened in append mode.
 	if ((flags & O_APPEND))
-	{ 
-		// Moves the pointer to the end of the file by getting 
+	{
+		// Moves the pointer to the end of the file by getting
 		// the last block's logical block number.
 		fcbArray[returnFd].current_location = get_last_block(fcbArray[returnFd].fi->location);
-		
+
 		// Updates the blocks_read field with the total number of blocks in the file.
-    	// It keeps track of how many blocks have been read.
+		// It keeps track of how many blocks have been read.
 		fcbArray[returnFd].blocks_read = fcbArray[returnFd].fi->blocks;
 
 		// Updates the file_size_index field to the end of the file.
-    	// This is the current offset of file and is used for read and write operations.
+		// This is the current offset of file and is used for read and write operations.
 		fcbArray[returnFd].file_size_index = fcbArray[returnFd].fi->file_size;
 	}
 	// Returns the file descriptor, that indicates the file opened successfully.
@@ -378,7 +379,7 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 			return (-1); // Invalid offset
 		}
 		break;
-	
+
 	case SEEK_END:
 		// Seek from the end of the file
 		if (offset <= 0 && -offset <= fcbArray[fd].fi->file_size)
@@ -420,8 +421,6 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 }
 */
 
-
-
 /**
  * The function writes data from the buffer to the buffered file associated
  * with the given file descriptor.
@@ -435,6 +434,9 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
  */
 int b_write(b_io_fd fd, char *buffer, int count)
 {
+	int user_buffer_pos = 0;
+	int bytes_written = 0;
+
 	if (startup == 0)
 		b_init(); // Initialize our system
 
@@ -444,6 +446,37 @@ int b_write(b_io_fd fd, char *buffer, int count)
 		return (-1); // invalid file descriptor
 	}
 
+	// while (bytes_written < count)
+	// {
+	// 	int bytes_into_block = 0;
+	// 	bool need_new_block = false;
+	// 	if((B_CHUNK_SIZE-fcbArray[fd].index) <= count){
+	// 		bytes_into_block = B_CHUNK_SIZE-fcbArray[fd].index;
+	// 	}
+	// }
+
+	// int block_remainder = B_CHUNK_SIZE - fcbArray[fd].index;
+	// 	if (count > block_remainder)
+	// {
+	// 	memcpy(buffer, fcbArray[fd].buf
+	// 		+ fcbArray[fd].index, block_remainder);
+
+	// 	if(LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_location) ==0){
+	// 		printf("[b_ioc -> b_write]LBAwrite failed");
+	// 		return -1;
+	// 	}
+	// 	int next_block = get_next_block(fcbArray[fd].current_location);
+	// 	if(next_block==-1){
+
+	// 	}
+	// 	fcbArray[fd].fi->location++;
+	// 	fcbArray[fd].file_block_index = 0;
+		
+	// 	count -= block_remainder;
+		
+	// 	user_buffer_pos += block_remainder;
+	// 	fcbArray[fd].file_read_index += block_remainder;
+	// }
 
 	return (0); // Change this
 }
@@ -467,8 +500,6 @@ int b_write(b_io_fd fd, char *buffer, int count)
 //  |             |                                                |        |
 //  | Part1       |  Part 2                                        | Part3  |
 //  +-------------+------------------------------------------------+--------+
-
-
 
 /**
  * The function reads data from the buffered file associated with the given file descriptor
@@ -580,16 +611,15 @@ int b_read(b_io_fd fd, char *buffer, int count)
 
 		if (part3 > 0)
 		{
-			memcpy(buffer + part1 + part2, fcbArray[fd].buf+fcbArray[fd].index, part3);
+			memcpy(buffer + part1 + part2, fcbArray[fd].buf + fcbArray[fd].index, part3);
 			fcbArray[fd].index = fcbArray[fd].index + part1;
 			fcbArray[fd].file_size_index += part1;
 			fcbArray[fd].buflen += part1;
 		}
 	}
 
-	return part1+part2+part3; // Change this
+	return part1 + part2 + part3; // Change this
 }
-
 
 /**
  * The function closes the buffered file associated with the given file descriptor.
@@ -600,7 +630,7 @@ int b_read(b_io_fd fd, char *buffer, int count)
  *         - If the file descriptor is invalid, it returns -1.
  */
 int b_close(b_io_fd fd)
-{	
+{
 	// Check if the file descriptor is within valid range,if it's not,
 	// returns -1 to indicate an invalid file descriptor.
 	if ((fd < 0) || (fd >= MAXFCBS))
@@ -631,7 +661,7 @@ int b_close(b_io_fd fd)
 
 	// Reset the number of blocks read to zero.
 	fcbArray[fd].blocks_read = 0;
-	
+
 	// Reset the file offset to zero.
 	fcbArray[fd].file_size_index = 0;
 
@@ -650,14 +680,14 @@ int b_close(b_io_fd fd)
  * @return - The block number of the last block in the file (given its location).
  */
 int get_last_block(int location)
-{	
+{
 	// Location of the previous block, initialized to -1.
 	int prev = -1;
 	// Current block location initialized with location.
 	int curr = location;
 
 	// Loop through the blocks until we reach the end.
-	// Keeps updating prev to store the location of the current block and moves 
+	// Keeps updating prev to store the location of the current block and moves
 	// to the next block using get_next_block().
 	while (curr != -1)
 	{
@@ -667,7 +697,7 @@ int get_last_block(int location)
 	return prev;
 }
 
-//TEMP FIX CHANGE LATER, ERROR MSG 'multiple definition', 'first defined here'
+// TEMP FIX CHANGE LATER, ERROR MSG 'multiple definition', 'first defined here'
 inline int main()
 {
 
