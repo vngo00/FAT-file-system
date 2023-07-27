@@ -97,6 +97,7 @@ char *build_absolute_path(const char *pathname)
 char *fs_getcwd(char *path, size_t size)
 {
 
+	//Uses the current_directory[0].path which is the full path for the cwd
     strncpy(path, current_directory[0].path, size);
 
     return path;
@@ -106,28 +107,39 @@ int fs_setcwd(char *path)
 {
     parsed_entry entry;
 
+	//First Check setup for parse_directory_path return value
+	//0 Succeeds, -1 fails
     if ( parse_directory_path(path, &entry) == -1) {
 		printf("[ FS SETCWD ]: Invalid path.\n");
         free_dir(entry.parent);
 		return -1;
 	}
     
-
+	//Second Check setup for if entry values are correctly updated from parse path
+	//Checks if the parent of the directory exists, will be itself if root dir
     if (entry.index == -1 || entry.parent == NULL) {
 		printf("[ FS SETCWD ] Directory does not exist within current directory\n");
 		free_dir(entry.parent);
 		return -1;
 	}
 
+	//Changing directory requires the path to be a directory in order to set
+	//The current directory to it
     if (!fs_isDir(path)){
         printf("[ FS SETCWD ]: Not a directory\n");
         free_dir(entry.parent);
         return -1;
     }
 
+	//Saves previous current_directory, in case current_directory gets incorrectly assigned
+	//Creates a temp save point before cwd is lost 
     Directory_Entry* temp = current_directory;
+
+	//Gets new target directory through return value of get_target (a directory entry)
     Directory_Entry* target = get_target_directory(entry.parent[entry.index]);
-    if (target == NULL) return -1;
+    if (target == NULL) return -1; //Quick Check for target value existing
+
+	//Actual Update and setting the new current directory
     current_directory = target;
     
     free_dir(temp);
