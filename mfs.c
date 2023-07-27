@@ -33,65 +33,6 @@ int get_empty_entry(Directory_Entry * parent);
 void free_dir(Directory_Entry *dir);
 int is_dir(Directory_Entry entry);
 
-/*
-
-// This function builds an absolute path from the current directory and the provided pathname.
-char *build_absolute_path(const char *pathname)
-{
-    static char buf[255];
-
-    printf("[ BUILD ABSOLUTE PATH ] : Building absolute path...\n");
-
-    if (!pathname)
-    {
-        printf("[ BUILD ABSOLUTE PATH ] : NULL argument detected.\n");
-        return NULL;
-    }
-
-    printf("[ BUILD ABSOLUTE PATH ] : Clearing buffer memory...\n");
-    memset(buf, '\0', sizeof(buf));
-    printf("[ BUILD ABSOLUTE PATH ] : Buffer after clearing: '%s'\n", buf);
-
-    if (pathname[0] != '/')
-    {
-        printf("[ BUILD ABSOLUTE PATH ] : Path does not start with '/'. Concatenating paths...\n");
-        if (!cwd)
-        {
-            printf("[ BUILD ABSOLUTE PATH ] : Current working directory is NULL.\n");
-            return NULL;
-        }
-        printf("[ BUILD ABSOLUTE PATH ] : Current working directory: '%s'\n", cwd);
-        strncpy(buf, cwd, sizeof(buf) - 1);
-        buf[sizeof(buf) - 1] = '\0';
-        printf("[ BUILD ABSOLUTE PATH ] : Buffer after concatenating current working directory: '%s'\n", buf);
-
-        if (strcmp(cwd, "/") != 0)
-        {
-            strncat(buf, "/", sizeof(buf) - strlen(buf) - 1);
-            buf[sizeof(buf) - 1] = '\0';
-            printf("[ BUILD ABSOLUTE PATH ] : Buffer after adding '/': '%s'\n", buf);
-        }
-
-        printf("[ BUILD ABSOLUTE PATH ] : Pathname: '%s'\n", pathname);
-        strncat(buf, pathname, sizeof(buf) - strlen(buf) - 1);
-        buf[sizeof(buf) - 1] = '\0';
-        printf("[ BUILD ABSOLUTE PATH ] : Buffer after concatenating pathname: '%s'\n", buf);
-    }
-    else
-    {
-        printf("[ BUILD ABSOLUTE PATH ] : Path starts with '/'. Copying pathname...\n");
-        printf("[ BUILD ABSOLUTE PATH ] : Pathname: '%s'\n", pathname);
-        strncpy(buf, pathname, sizeof(buf) - 1);
-        buf[sizeof(buf) - 1] = '\0';
-        printf("[ BUILD ABSOLUTE PATH ] : Buffer after copying pathname: '%s'\n", buf);
-    }
-
-    return buf;
-}
-
-*/
-
-
 // This function changes the current working directory to the specified path.
 // It allows us to navigate to a different directory within the file system.
 char *fs_getcwd(char *path, size_t size)
@@ -145,59 +86,6 @@ int fs_setcwd(char *path)
     free_dir(temp);
    
     return 0;
-
-    /*
-    char *new_cwd = NULL;
-
-    if (strcmp(path, "..") == 0)
-    {
-        printf("[ FS SETCWD ]: Handling parent directory case.\n");
-        if (strcmp(cwd, "/") == 0)
-        {
-            printf("[ FS SETCWD ]: Already at root, cannot go up any further.\n");
-            return 0;
-        }
-        new_cwd = malloc(255);
-        if (new_cwd == NULL)
-        {
-            printf("[ FS SETCWD ]: Failed to allocate memory for new_cwd.\n");
-            return -1;
-        }
-        strcpy(new_cwd, cwd);
-        char *last_slash = strrchr(new_cwd, '/');
-        if (last_slash != new_cwd)
-        {
-            *last_slash = '\0';
-            printf("[ FS SETCWD ]: Moved up to parent directory.\n");
-        }
-        else
-        {
-            *(last_slash + 1) = '\0';
-            printf("[ FS SETCWD ]: Moved up to root directory.\n");
-        }
-    }
-    else
-    {
-        printf("[ FS SETCWD ]: Building new path.\n");
-        new_cwd = malloc(255);
-        if (new_cwd == NULL)
-        {
-            printf("[ FS SETCWD ]: Failed to allocate memory for new_cwd.\n");
-            return -1;
-        }
-        strcpy(new_cwd, build_absolute_path(path));
-    }
-
-    if (cwd != NULL)
-    {
-        free(cwd);
-        printf("[ FS SETCWD ]: Freed old cwd.\n");
-    }
-    cwd = new_cwd;
-    printf("[ FS SETCWD ]: Set cwd to new_cwd.\n");
-
-    return 0;
-    */
 }
 
 /*
