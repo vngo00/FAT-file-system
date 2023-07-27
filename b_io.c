@@ -196,28 +196,46 @@ b_io_fd b_open(char *filename, int flags)
 		}
 	}
 
+	// If both flags are set, it indicates an attempt to open the file for both write-only
+	// and read-write, which is not allowed due to conflicting access modes.
 	if ((flags & O_WRONLY) && (flags & O_RDWR))
 		return -1;
+
+	// TODO
 	if ((flags & O_TRUNC) && (flags & O_APPEND))
 		return 1;
 
+	// Check if the file system has been initialized.
+	// If the system is not initialized, call 'b_init()' to initialize it.
 	if (startup == 0)
 		b_init(); // Initialize our system
 
-	returnFd = b_getFCB(); // get our own file descriptor
-	// check for error - all used FCB's
+	// get our own file descriptor
+	returnFd = b_getFCB(); 
+
+	// check for error - all used FCB's.
 	if (returnFd == -1)
 		return -1;
 
+
+	// Gets file information using get_file_info() for the specified filename.
 	fcbArray[returnFd].fi = (file_info *)get_file_info(filename);
+
+	// Check if the file information retrieval was successful.
+	// If fi is NULL, it means the get_file_info() returned NULL, 
+	// indicating an error in retrieving file information.
 	if (fcbArray[returnFd].fi == NULL)
 	{
 		printf("[OPEN] invalid filename\n");
 		return -1;
 	}
 
+	// Check if file name is an empty string "". That indicates file does not exist.
 	if (strcmp(fcbArray[returnFd].fi->file_name, "") == 0)
 	{
+		// If the 'O_CREAT' flag is not set, file should not be created.
+		// It then print an error message, free the memory allocated for fi,
+		// set it to NULL, and returns -1.
 		if (!(flags & O_CREAT))
 		{ // don't want to make new if not exists
 			printf("[OPEN] file does not exists\n");
@@ -225,34 +243,76 @@ b_io_fd b_open(char *filename, int flags)
 			fcbArray[returnFd].fi = NULL;
 			return -1;
 		}
+
+		// Try to create the file using the fs_mkfile().
+		// If the creation fails prints an error message,
+		// free the memory allocated for fi, set it to NULL, and return -1.
 		if (fs_mkfile(filename) == -1)
 		{
 			free(fcbArray[returnFd].fi);
 			fcbArray[returnFd].fi = NULL;
 			return -1;
 		}
-		fcbArray[returnFd].fi = get_file_info(filename);
-	}
-	else if ((flags & O_TRUNC))
-	{
-		fs_delete(filename);
-		fs_mkfile(filename);
+
+		// Gets the file information fi for the file using get_file_info().
 		fcbArray[returnFd].fi = get_file_info(filename);
 	}
 
+	// If O_TRUNC flag is set, it means the file should be truncated and 
+	// its content should be cleared.
+	// This step is to make sure that the file information is updated.
+	else if ((flags & O_TRUNC))
+	{	
+		// Delete the existing file from the file system to clear its content.
+		fs_delete(filename);
+		// Create a new empty file with the same name as the original file.
+		fs_mkfile(filename);
+		// Retrieve the updated file information for the empty file.
+		fcbArray[returnFd].fi = get_file_info(filename);
+	}
+
+	// Allocates memory for the buffer used to hold the content of the file for
+	// the file descriptor returnFd.
 	fcbArray[returnFd].buf = (char *)malloc(B_CHUNK_SIZE);
+
+	// Sets the index in the buffer to 0 to indicate that the buffer is initially empty.
 	fcbArray[returnFd].index = 0;
+
+	// Sets the buffer length to 0, to indicate that the buffer doesn't contain any 
+	// valid data yet.
 	fcbArray[returnFd].buflen = 0;
+
+	// Sets the current_location to the starting logical block of the file
+	// This keeps track of the current location of the file's content.
 	fcbArray[returnFd].current_location = fcbArray[returnFd].fi->location;
+
+	// Initializes blocks_read to 0, to indicate that no blocks have been read from the file yet.
 	fcbArray[returnFd].blocks_read = 0;
+
+	// Initializes file_size_index to 0, which is the current offset of the file.
+	// It is updated when reading or writing to the file to keep track of the current position.
 	fcbArray[returnFd].file_size_index = 0;
+
+	// Stores the flags in fcbArray to keep track of the intend of opening the file.
+	// The flags indicate the access mode for the file.
 	fcbArray[returnFd].flags = flags;
+
+	// Check if O_APPEND flag is set. That indicates the file is opened in append mode.
 	if ((flags & O_APPEND))
-	{ // if append move the pointer to end of file
+	{ 
+		// Moves the pointer to the end of the file by getting 
+		// the last block's logical block number.
 		fcbArray[returnFd].current_location = get_last_block(fcbArray[returnFd].fi->location);
+		
+		// Updates the blocks_read field with the total number of blocks in the file.
+    	// It keeps track of how many blocks have been read.
 		fcbArray[returnFd].blocks_read = fcbArray[returnFd].fi->blocks;
+
+		// Updates the file_size_index field to the end of the file.
+    	// This is the current offset of file and is used for read and write operations.
 		fcbArray[returnFd].file_size_index = fcbArray[returnFd].fi->file_size;
 	}
+	// Returns the file descriptor, that indicates the file opened successfully.
 	return (returnFd); // all set
 }
 /*
