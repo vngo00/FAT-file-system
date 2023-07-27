@@ -657,7 +657,7 @@ int fs_mvFile(char *filename, char *pathname) {
 
 	if ( source.index == -1 || source.parent == NULL) {
 		printf("[MVILFE] %s does not exist\n", source.name);
-		freer_dir(source.parent);
+		free_dir(source.parent);
 		return -1;
 	}
 
@@ -675,7 +675,7 @@ int fs_mvFile(char *filename, char *pathname) {
 
 	if (destination.index == -1 || destination.parent == NULL) {
 		free_dir(destination.parent);
-		printff("[MFILE] dir does not exists\n");
+		printf("[MFILE] dir does not exists\n");
 		return -1;
 	}
 
@@ -711,6 +711,8 @@ int fs_mvFile(char *filename, char *pathname) {
 	return 0;
 
 }
+
+
 
 
 
@@ -899,6 +901,38 @@ void free_dir(Directory_Entry * dir) {
 		free(dir);
 		dir == NULL;
 	}
+}
+
+int fs_renameDirectoryOrFile(const char *path, const *newName)
+{
+
+	parsed_entry entry;
+
+	if (fs_isFile(newName) == 0 || fs_isDir(newName) == 0 ){
+			printf("[ FS RENAME ]: Name already exists.\n");
+			return -1;
+    }
+
+	if (fs_isDir(path)){
+        printf("[ FS RENAME ]: Changing dir name of %s to %s\n", path, newName);
+    }
+	else{
+		printf("[ FS RENAME ]: Changing file name of %s to %s\n", path, newName);
+	}
+
+    if ( parse_directory_path(path, &entry) == -1) {
+		printf("[ FS RENAME ]: Invalid path.\n");
+        free_dir(entry.parent);
+		return -1;
+	}
+
+
+    Directory_Entry* target = get_target_directory(entry.parent[entry.index]);
+	strcpy(entry.parent[entry.index].dir_name, newName);
+
+	free_dir(entry.parent);
+    return 0;
+	
 }
 
 

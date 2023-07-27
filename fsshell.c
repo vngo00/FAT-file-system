@@ -41,7 +41,7 @@
 /****   SET THESE TO 1 WHEN READY TO TEST THAT COMMAND ****/
 #define CMDLS_ON	1
 #define CMDCP_ON	0
-#define CMDMV_ON	0
+#define CMDMV_ON	1
 #define CMDMD_ON	1
 #define CMDRM_ON	1
 #define CMDCP2L_ON	0
@@ -374,12 +374,19 @@ int cmd_mv (int argcnt, char *argvec[])
 	int source_type = fs_isFile(argvec[1]);
 	int dest_type = fs_isFile(argvec[2]);
 
+	//Testing Function Only
+	fs_renameDirectoryOrFile(argvec[1], argvec[2]);
+
+	/*
 	if ( source_type == 1 && dest_type == 0) {
-		return (fs_mvFile(argvec[1], agrvec[2]));
+		return (fs_mvFile(argvec[1], argvec[2]));
 	}
 	printf("invalid %s or %s\n", argvec[1], argvec[2]);
+	*/
+
 #endif
 	return 0;
+
 	}
 
 /****************************************************
@@ -575,6 +582,7 @@ int cmd_pwd (int argcnt, char *argvec[])
 #endif
 	return 0;
 	}
+
 
 /****************************************************
 *  History commmand
