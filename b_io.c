@@ -31,9 +31,10 @@
 
 // Global variable.
 extern int bytes_per_block;
-
+// Function declaration to find the last block in a chain of blocks.
 int get_last_block(int location);
 
+// Structure to store file information
 typedef struct file_info
 {
 	char file_name[NAME_MAX_LENGTH]; // file name
@@ -176,16 +177,19 @@ b_io_fd b_getFCB()
 // Modification of interface for this assignment, flags match the Linux flags for open
 // O_RDONLY, O_WRONLY, or O_RDWR
 b_io_fd b_open(char *filename, int flags)
-{
+{	
+	// Stores the file descriptor of the opened file.
 	b_io_fd returnFd;
 
-	//*** TODO ***:  Modify to save or set any information needed
-	//
-	//
+	// Return -1 if the filename is NULL, indicating an error.
 	if (filename == NULL)
 		return -1;
+
+	// Checks if the file is being opened in read-only mode.
 	if ((flags & O_RDONLY))
-	{
+	{	
+	// If any of the write-related flags are set, it means there is an attempt 
+	// to combine read-only with write-related operations, which is not allowed.
 		if ((flags & O_TRUNC) || (flags & O_CREAT) || (flags & O_APPEND) || (flags & O_RDWR))
 		{
 			return -1;
