@@ -41,14 +41,6 @@ char *fs_getcwd(char *path, size_t size)
 	//Uses the current_directory[0].path which is the full path for the cwd
     strncpy(path, current_directory[0].path, size);
 
-	// adding code to test b_read, need to remove !!!
-	if(fs_mkfile("g")==0){
-		printf("[Test]: File was made.\n");	
-	}
-	int index = find_target_entry(current_directory,&"g");
-	Directory_Entry *temp = get_target_directory(current_directory[index]);
-	printf("[Test]: number of blocks in file %i .\n", temp->dir_file_size);	
-
     return path;
 }
 
