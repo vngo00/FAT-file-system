@@ -699,8 +699,6 @@ int b_read(b_io_fd fd, char *buffer, int count)
 		fcbArray[fd].buflen = 0; 
 		fcbArray[fd].index = 0;
 
-		// Update the current file offset for part3.
-		fcbArray[fd].file_size_index += B_CHUNK_SIZE;
 		if (bytes_readP3 < part3)
 		{
 			part3 = bytes_readP3;
@@ -715,9 +713,9 @@ int b_read(b_io_fd fd, char *buffer, int count)
 			
 
 			// Update the file offset and buffer length in the fcbArray for part3.
-			fcbArray[fd].index = fcbArray[fd].index + part1;
-			fcbArray[fd].file_size_index += part1;
-			fcbArray[fd].buflen += part1;
+			fcbArray[fd].index = fcbArray[fd].index + part3;
+			fcbArray[fd].file_size_index += part3;
+			fcbArray[fd].buflen += part3;
 		}
 	}
 	// Returns the total number of bytes read from the file.
