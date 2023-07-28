@@ -178,7 +178,7 @@ uint32_t allocate_blocks(int blocks_needed) {
 /*
  * extend the size of a file by one block
  */
-void allocate_additional_bocks(uint32_t first_block, int blocks_to_allocate) {
+void allocate_additional_blocks(uint32_t first_block, int blocks_to_allocate) {
     int curr_index = first_block;
 
     //Get to the EOF BLOCK
