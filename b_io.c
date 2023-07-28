@@ -432,54 +432,101 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
  * @return - On success, the function returns the number of bytes written to the file.
  *         - If an error occurs during writing, it returns -1.
  */
+
+// Function to write data to a file
 int b_write(b_io_fd fd, char *buffer, int count)
 {
-	int user_buffer_pos = 0;
-	int bytes_written = 0;
+    int bytes_written = 0;
+    int bytes_into_block = 0;
+	int to_be_written = count;
+	uint32_t initial_block = fcbArray[fd].current_location;
+	int total_blocks = 1;
 
-	if (startup == 0)
-		b_init(); // Initialize our system
+    // Check if the system is initialized
+    if (startup == 0)
+        b_init(); // Initialize our system
 
-	// check that fd is between 0 and (MAXFCBS-1)
-	if ((fd < 0) || (fd >= MAXFCBS))
+    // Check that fd is between 0 and (MAXFCBS-1)
+    if ((fd < 0) || (fd >= MAXFCBS))
+    {
+        return -1; // Invalid file descriptor
+    }
+
+    while (bytes_written < count)
+    {
+        bytes_into_block = B_CHUNK_SIZE - fcbArray[fd].index;
+
+        // Check if the buffer can fit entirely in the current block
+        if (to_be_written <= bytes_into_block)
+        {
+            // Write the entire buffer to the current block
+            memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer + bytes_written, to_be_written);
+
+            // Update the buffer index and file offset
+            fcbArray[fd].index += to_be_written;
+            fcbArray[fd].file_size_index += to_be_written;
+            bytes_written += to_be_written;
+            to_be_written = 0; // All data is written
+        }
+        else
+        {
+            // Write as much as possible to the current block
+            memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer + bytes_written, bytes_into_block);
+
+            // Update the buffer index, file offset, and bytes_written
+            fcbArray[fd].index += bytes_into_block;
+            fcbArray[fd].file_size_index += bytes_into_block;
+            bytes_written += bytes_into_block;
+            to_be_written -= bytes_into_block;
+
+            // Check if we need to allocate more blocks
+            if (to_be_written > 0)
+            {
+                // Find the next block in the file using FAT
+                uint32_t next_block = get_next_block(fcbArray[fd].current_location);
+				total_blocks += 1;
+
+                // If there is no next block, we need to allocate a new block
+                if (next_block == EOF_BLOCK)
+                {
+                    // Calculate the number of additional blocks needed
+                    int blocks_needed = to_be_written  / bytes_per_block;
+
+                    // Allocate additional blocks
+                    allocate_additional_blocks(fcbArray[fd].current_location, blocks_needed);
+
+                    // Update the FAT array and write it to disk
+                    update_fat_on_disk();
+
+                    // Get the updated next block from FAT
+                    next_block = get_next_block(fcbArray[fd].current_location);
+                }
+
+                // Update the current_location to the next block
+                fcbArray[fd].current_location = next_block;
+
+                // Update the buffer index to the beginning of the new block
+                fcbArray[fd].index = 0;
+            }
+        }
+    }
+
+	// Write the current block to the disk using LBAwrite
+	if (LBAwrite(fcbArray[fd].buf, total_blocks, initial_block) == 0)
 	{
-		return (-1); // invalid file descriptor
+		printf("[b_write] LBAwrite failed");
+		return -1;
 	}
 
-	// while (bytes_written < count)
-	// {
-	// 	int bytes_into_block = 0;
-	// 	bool need_new_block = false;
-	// 	if((B_CHUNK_SIZE-fcbArray[fd].index) <= count){
-	// 		bytes_into_block = B_CHUNK_SIZE-fcbArray[fd].index;
-	// 	}
-	// }
+    // Update the file size in the file_info struct
+    if (fcbArray[fd].file_size_index > fcbArray[fd].fi->file_size)
+    {
+        fcbArray[fd].fi->file_size = fcbArray[fd].file_size_index;
+    }
 
-	// int block_remainder = B_CHUNK_SIZE - fcbArray[fd].index;
-	// 	if (count > block_remainder)
-	// {
-	// 	memcpy(buffer, fcbArray[fd].buf
-	// 		+ fcbArray[fd].index, block_remainder);
-
-	// 	if(LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_location) ==0){
-	// 		printf("[b_ioc -> b_write]LBAwrite failed");
-	// 		return -1;
-	// 	}
-	// 	int next_block = get_next_block(fcbArray[fd].current_location);
-	// 	if(next_block==-1){
-
-	// 	}
-	// 	fcbArray[fd].fi->location++;
-	// 	fcbArray[fd].file_block_index = 0;
-		
-	// 	count -= block_remainder;
-		
-	// 	user_buffer_pos += block_remainder;
-	// 	fcbArray[fd].file_read_index += block_remainder;
-	// }
-
-	return (0); // Change this
+    return bytes_written;
 }
+
 
 // Interface to read a buffer
 
