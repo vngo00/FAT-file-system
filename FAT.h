@@ -61,6 +61,10 @@ int is_block_free(uint32_t block);
 // by counting the number of entries with zero values in FAT
 uint32_t get_total_free_blocks();
 
+// Function to compute blocks from 
+// bytes given
+int to_blocks(int bytes);
+
 #endif //__FAT_H__
 
 
