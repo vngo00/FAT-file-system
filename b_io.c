@@ -43,6 +43,7 @@ typedef struct file_info
 	int file_size;					 // file size in bytes
 	int location;					 // starting logical block in disk
 	int blocks;						 // total blocks of file in disk
+	Directory_Entry *de;			// Testing....................................
 } file_info;
 
 /**
@@ -112,6 +113,8 @@ file_info *get_file_info(char *fname)
 
 		// Set the number of blocks in finfo.
 		finfo->blocks = blocks;
+
+		finfo -> de = &entry.parent[entry.index];
 	}
 	else
 	{
@@ -236,7 +239,7 @@ b_io_fd b_open(char *filename, int flags)
 
 	// Gets file information using get_file_info() for the specified filename.
 	fcbArray[returnFd].fi = (file_info *)get_file_info(filename);
-
+	
 	// Check if the file information retrieval was successful.
 	// If fi is NULL, it means the get_file_info() returned NULL,
 	// indicating an error in retrieving file information.
@@ -328,6 +331,9 @@ b_io_fd b_open(char *filename, int flags)
 		// This is the current offset of file and is used for read and write operations.
 		fcbArray[returnFd].file_size_index = fcbArray[returnFd].fi->file_size;
 	}
+
+	printf("The file location: %d \n", fcbArray[returnFd].current_location);
+	printf("The file_size_index: %d \n", fcbArray[returnFd].file_size_index);
 	// Returns the file descriptor, that indicates the file opened successfully.
 	return (returnFd); // all set
 }
@@ -436,10 +442,12 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
 // Function to write data to a file
 int b_write(b_io_fd fd, char *buffer, int count)
 {
+	
     int bytes_written = 0;
     int bytes_into_block = 0;
 	int to_be_written = count;
 	uint32_t initial_block = fcbArray[fd].current_location;
+	fcbArray[fd].fi->de->dir_first_cluster = initial_block;
 	int total_blocks = 1;
 
     // Check if the system is initialized
@@ -524,6 +532,8 @@ int b_write(b_io_fd fd, char *buffer, int count)
         fcbArray[fd].fi->file_size = fcbArray[fd].file_size_index;
     }
 
+	fcbArray[fd].fi->de->dir_file_size = fcbArray[fd].file_size_index;
+	 
     return bytes_written;
 }
 
@@ -562,13 +572,16 @@ int b_write(b_io_fd fd, char *buffer, int count)
  */
 int b_read(b_io_fd fd, char *buffer, int count)
 {
+
 	// Initialize variables to calculate how much data can be filled from the buffer.
 	int part1, part2, part3;
 	int remainingBytes = B_CHUNK_SIZE - fcbArray[fd].index;
 	int blocksToCopy;
 	int bytesRead;
-
-	// Check if the file system has been initialized. 
+	printf("[b_ioc -> b_read] count is %d\n", count);
+	printf("[b_ioc -> b_read] the file name is %s", fcbArray[fd].fi->file_name);
+	printf("[b_ioc -> b_read] the file location is %d", fcbArray[fd].fi->location);
+	// Check if the file system has been initialized.
 	// If not, call b_init() to initialize it.
 	if (startup == 0)
 		b_init(); // Initialize our system
@@ -584,19 +597,22 @@ int b_read(b_io_fd fd, char *buffer, int count)
 		return -1;
 	}
 
-	// check read flag
+	// TODO: check read flag
+	printf("[b_ioc -> b_read] file_size is %d\n", fcbArray[fd].file_size_index);
 
 	// adjust count if greater than EOF
 	if (count + fcbArray[fd].file_size_index > fcbArray[fd].fi->file_size)
 	{
+		printf("[b_ioc -> b_read] file_size is %d\n", fcbArray[fd].fi->file_size);
 		count = fcbArray[fd].fi->file_size - fcbArray[fd].file_size_index;
-		printf("[b_ioc -> b_read] Had to reduce count");
+		printf("[b_ioc -> b_read] Had to reduce count\n");
 	}
 
 	// Calculate how many bytes can be filled in multiples of the block size.
 	if (remainingBytes >= count)
 	{
-		part1 = remainingBytes;
+		printf("[b_ioc -> b_read] filling in from current block\n");
+		part1 = count;
 		part2 = 0;
 		part3 = 0;
 	}
@@ -616,7 +632,8 @@ int b_read(b_io_fd fd, char *buffer, int count)
 
 	// If there are bytes remaining in the buffer, copy them to the user's buffer.
 	if (part1 > 0)
-	{	
+	{
+		printf("[b_ioc -> b_read] inside condition part 1\n");
 		// Copy part1 number of bytes from the current position in the buffer
 		// to the user's buffer, starting at the address pointed by buffer.
 		memcpy(buffer, fcbArray[fd].buf + fcbArray[fd].index, part1);
@@ -628,14 +645,18 @@ int b_read(b_io_fd fd, char *buffer, int count)
 		// to keep track of the current position in the file.
 		fcbArray[fd].file_size_index += part1;
 
-		// Increase the buffer length by part1, 
+		// Increase the buffer length by part1,
 		// the buffer now has part1 more valid bytes.
 		fcbArray[fd].buflen += part1;
 	}
+	printf("[b_ioc -> b_read] par 1 is %d\n", part1);
+	printf("[b_ioc -> b_read] par 2 is %d\n", part2);
+	printf("[b_ioc -> b_read] par 3 is %d\n", part3);
 
 	//  If there are blocks to be read, read them and copy to the user's buffer.
 	if (part2 > 0)
-	{	
+	{
+		printf("[b_ioc -> b_read] inside condition part 2\n");
 		// Keeps track of the number of bytes copied in part2.
 		int tempPart2 = 0;
 
@@ -651,13 +672,12 @@ int b_read(b_io_fd fd, char *buffer, int count)
 			// Check if the end of file has been reached.
 			if (fcbArray[fd].current_location == -1)
 			{
-				printf("[b_io.c -> b_read] reached EOF in part2");
+				printf("[b_io.c -> b_read] reached EOF in part2\n");
 			}
 
 			// Read the block from the disk into the user's buffer.
 			blocks_read = LBAread(buffer + part1 + tempPart2, 1, fcbArray[fd].current_location);
 
-			
 			bytesRead = blocks_read * B_CHUNK_SIZE;
 
 			// Update the blocks_read field in the fcbArray to keep track of how many blocks have been read.
@@ -676,6 +696,7 @@ int b_read(b_io_fd fd, char *buffer, int count)
 	// If there are bytes remaining to be read, reads the next block and copy to the user's buffer
 	if (part3 > 0)
 	{
+		printf("[b_ioc -> b_read] inside condition part 3\n");
 		// Update the current_location to the logical block number of the next block.
 		int bytes_readP3 = 0;
 		fcbArray[fd].current_location = get_next_block(fcbArray[fd].current_location);
@@ -683,7 +704,7 @@ int b_read(b_io_fd fd, char *buffer, int count)
 		// Check if the end of file has been reached.
 		if (fcbArray[fd].current_location == -1)
 		{
-			printf("[b_io.c -> b_read] reached EOF in part3");
+			printf("[b_io.c -> b_read] reached EOF in part3\n");
 		}
 
 		// Read the block from the disk into the buffer in the fcbArray.
@@ -696,21 +717,20 @@ int b_read(b_io_fd fd, char *buffer, int count)
 		fcbArray[fd].blocks_read++;
 
 		// Reset the buffer index and buflen in the fcbArray for part3.
-		fcbArray[fd].buflen = 0; 
+		fcbArray[fd].buflen = 0;
 		fcbArray[fd].index = 0;
 
 		if (bytes_readP3 < part3)
 		{
 			part3 = bytes_readP3;
-			printf("[b_io.c -> b_read] Bytes read less than part3");
+			printf("[b_io.c -> b_read] Bytes read less than part3\n");
 		}
 
 		// If bytes read in part3 are less than part3 it updates part3 to the actual bytes read.
 		if (part3 > 0)
-		{	
+		{
 			// Copy the remaining bytes from the buffer to the user's buffer.
-			memcpy(buffer + part1 + part2, fcbArray[fd].buf+fcbArray[fd].index, part3);
-			
+			memcpy(buffer + part1 + part2, fcbArray[fd].buf + fcbArray[fd].index, part3);
 
 			// Update the file offset and buffer length in the fcbArray for part3.
 			fcbArray[fd].index = fcbArray[fd].index + part3;
@@ -718,8 +738,10 @@ int b_read(b_io_fd fd, char *buffer, int count)
 			fcbArray[fd].buflen += part3;
 		}
 	}
+	printf("[b_ioc -> b_read] return number of bytes copied is %d\n", (part1 + part2 + part3));
 	// Returns the total number of bytes read from the file.
-	return part1+part2+part3; 
+	return part1 + part2 + part3;
+	//*/
 }
 
 /**

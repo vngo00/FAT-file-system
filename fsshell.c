@@ -40,16 +40,16 @@
 
 /****   SET THESE TO 1 WHEN READY TO TEST THAT COMMAND ****/
 #define CMDLS_ON	1
-#define CMDCP_ON	0
-#define CMDMV_ON	1
+#define CMDCP_ON	1
+#define CMDMV_ON	0
 #define CMDMD_ON	1
 #define CMDRM_ON	1
-#define CMDCP2L_ON	0
-#define CMDCP2FS_ON	0
+#define CMDCP2L_ON	1
+#define CMDCP2FS_ON	1
 #define CMDCD_ON	1
 #define CMDPWD_ON	1
 #define CMDTOUCH_ON	1
-#define CMDCAT_ON	0
+#define CMDCAT_ON	1
 
 
 typedef struct dispatch_t
@@ -365,7 +365,7 @@ int cmd_cp (int argcnt, char *argvec[])
 int cmd_mv (int argcnt, char *argvec[])
 	{
 #if (CMDMV_ON == 1)				
-	// **** TODO ****  For you to implement	
+	
 	if (argcnt != 3) {
 		printf("Usage: mv path path\n");
 		return -1;
@@ -375,14 +375,18 @@ int cmd_mv (int argcnt, char *argvec[])
 	int dest_type = fs_isFile(argvec[2]);
 
 	//Testing Function Only
-	fs_renameDirectoryOrFile(argvec[1], argvec[2]);
+	//fs_renameDirectoryOrFile(argvec[1], argvec[2]);
 
-	/*
-	if ( source_type == 1 && dest_type == 0) {
-		return (fs_mvFile(argvec[1], argvec[2]));
-	}
-	printf("invalid %s or %s\n", argvec[1], argvec[2]);
-	*/
+	if (source_type == 1 && dest_type == 0) {
+        // Move a file
+        return fs_mvFile(argvec[1], argvec[2]);
+    } else if (source_type == 1 && dest_type == 1) {
+        // Rename a file
+        return fs_renameFile(argvec[1], argvec[2]);
+    } else if (source_type == 2 && dest_type == 2) {
+        // Move or Rename a directory
+        return fs_mvDir(argvec[1], argvec[2]);
+    }
 
 #endif
 	return 0;
