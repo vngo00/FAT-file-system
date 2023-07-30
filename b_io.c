@@ -440,12 +440,12 @@ int b_seek(b_io_fd fd, off_t offset, int whence)
  */
 
 // Function to write data to a file
-int b_write(b_io_fd fd, char *buffer, int count)
+int b_write(b_io_fd fd, char *buffer, int count) //600
 {
 	
     int bytes_written = 0;
     int bytes_into_block = 0;
-	int to_be_written = count;
+	int to_be_written = count; //600
 	uint32_t initial_block = fcbArray[fd].current_location;
 	fcbArray[fd].fi->de->dir_first_cluster = initial_block;
 	int total_blocks = 1;
@@ -462,7 +462,7 @@ int b_write(b_io_fd fd, char *buffer, int count)
 
     while (bytes_written < count)
     {
-        bytes_into_block = B_CHUNK_SIZE - fcbArray[fd].index;
+        bytes_into_block = B_CHUNK_SIZE - fcbArray[fd].index;  //512
 
         // Check if the buffer can fit entirely in the current block
         if (to_be_written <= bytes_into_block)
@@ -470,29 +470,51 @@ int b_write(b_io_fd fd, char *buffer, int count)
             // Write the entire buffer to the current block
             memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer + bytes_written, to_be_written);
 
+			printf("fcbArray >>> 1 buffer: %d \n", fcbArray[fd].buf);
+
+			// Write the current block to the disk using LBAwrite
+			if (LBAwrite(fcbArray[fd].buf + fcbArray[fd].index, 1, fcbArray[fd].current_location) == 0)
+			{	
+				printf("fcbArray index: %d \n", fcbArray[fd].current_location);
+				printf("fcbArray buffer: %d \n", fcbArray[fd].buf);
+				printf("fcbArray index: %d \n", fcbArray[fd].index);
+				printf("[b_write] 1 LBAwrite failed");
+				break;
+			}
+
             // Update the buffer index and file offset
-            fcbArray[fd].index += to_be_written;
+             fcbArray[fd].index += to_be_written;
             fcbArray[fd].file_size_index += to_be_written;
             bytes_written += to_be_written;
             to_be_written = 0; // All data is written
+			
         }
         else
         {
+			printf("Inside the else-------\n");
             // Write as much as possible to the current block
             memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer + bytes_written, bytes_into_block);
 
+			// Write the current block to the disk using LBAwrite
+			if (LBAwrite(fcbArray[fd].buf + fcbArray[fd].index, 1, fcbArray[fd].current_location) == 0)
+			{
+				printf("[b_write] 2 LBAwrite failed");
+				return -1;
+			}
+
             // Update the buffer index, file offset, and bytes_written
-            fcbArray[fd].index += bytes_into_block;
+            fcbArray[fd].index += bytes_into_block; //512 in the block
             fcbArray[fd].file_size_index += bytes_into_block;
-            bytes_written += bytes_into_block;
-            to_be_written -= bytes_into_block;
+            bytes_written += bytes_into_block; // 512
+            to_be_written -= bytes_into_block; // 88
 
             // Check if we need to allocate more blocks
             if (to_be_written > 0)
-            {
+            {	
+
                 // Find the next block in the file using FAT
                 uint32_t next_block = get_next_block(fcbArray[fd].current_location);
-				total_blocks += 1;
+				printf("THis is the next_block before the if: %d \n", next_block);
 
                 // If there is no next block, we need to allocate a new block
                 if (next_block == EOF_BLOCK)
@@ -501,30 +523,27 @@ int b_write(b_io_fd fd, char *buffer, int count)
                     int blocks_needed = to_be_written  / bytes_per_block;
 
                     // Allocate additional blocks
-                    allocate_additional_blocks(fcbArray[fd].current_location, blocks_needed);
+                    allocate_additional_blocks(fcbArray[fd].current_location, 1);
 
                     // Update the FAT array and write it to disk
-                    update_fat_on_disk();
+                    // update_fat_on_disk();
 
                     // Get the updated next block from FAT
                     next_block = get_next_block(fcbArray[fd].current_location);
+					printf("THis is the next_block: %d \n", next_block);
                 }
 
-                // Update the current_location to the next block
-                fcbArray[fd].current_location = next_block;
+				// Update the current_location to the next block
+				fcbArray[fd].current_location = next_block;
 
-                // Update the buffer index to the beginning of the new block
-                fcbArray[fd].index = 0;
+				// Update the buffer index to the beginning of the new block
+				fcbArray[fd].index = 0;
+
             }
         }
     }
 
-	// Write the current block to the disk using LBAwrite
-	if (LBAwrite(fcbArray[fd].buf, total_blocks, initial_block) == 0)
-	{
-		printf("[b_write] LBAwrite failed");
-		return -1;
-	}
+	
 
     // Update the file size in the file_info struct
     if (fcbArray[fd].file_size_index > fcbArray[fd].fi->file_size)
