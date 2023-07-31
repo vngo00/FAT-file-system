@@ -27,9 +27,9 @@
 #include "fsLow.h"
 
 extern int entries_per_dir; // need to know the number of the entries per directory
-extern int bytes_per_block;
+extern int bytes_per_block; // 
 
-int get_empty_entry(Directory_Entry * parent);
+int get_empty_entry(Directory_Entry * parent); 
 void free_dir(Directory_Entry *dir);
 int is_dir(Directory_Entry entry);
 
@@ -44,8 +44,11 @@ char *fs_getcwd(char *path, size_t size)
     return path;
 }
 
+//This function sets the current working to a new directory that is passed thrugh
 int fs_setcwd(char *path)
 {
+	//represents the entry that holds entry.parent and entry.name to use
+	//to update the current working directory
     parsed_entry entry;
 
 	//First Check setup for parse_directory_path return value
@@ -83,6 +86,8 @@ int fs_setcwd(char *path)
 	//Actual Update and setting the new current directory
     current_directory = target;
     
+	//frees the temp value that is created incase current directory is changed to 
+	//wrong value
     free_dir(temp);
    
     return 0;
@@ -129,6 +134,8 @@ Directory_Entry *get_target_directory(Directory_Entry entry)
     return ret;
 }
 
+
+//
 int find_target_entry(Directory_Entry *current_dir_ent, char *token)
 {
 
@@ -147,9 +154,14 @@ int find_target_entry(Directory_Entry *current_dir_ent, char *token)
 }
 
 
+//parse_directory_path that is used to tokenize a string that is like
+// /dirA/dirB/fileC (abosolute) or dirB (relative)
 int parse_directory_path(char *path, parsed_entry *entry) {
+	
+	//Checks if path has a value
 	if (path == NULL) return -1;
 	
+	//Creates a start directory that represents the start point
 	Directory_Entry *start_dir;
 	// checking for starting point
 	if ( path[0] != '/') { //relative
@@ -158,6 +170,9 @@ int parse_directory_path(char *path, parsed_entry *entry) {
 		start_dir = root_directory;
 	}
 
+	//We set the start_dir to the parent
+	//This will allow us to save the parent as move to the new directory
+	//that will be gotten from the tokenization
 	Directory_Entry * parent = start_dir;
 
 	int index = -1;
@@ -170,6 +185,9 @@ int parse_directory_path(char *path, parsed_entry *entry) {
 		return 0;
 	}
 
+	//if it is not the current directory or root
+	//we need to actualy tokenize and use the find target entry
+	//to start setting the entry.names
 	while (token != NULL) {
 		char * token2 = strtok(NULL, "/");
 
@@ -186,6 +204,7 @@ int parse_directory_path(char *path, parsed_entry *entry) {
 		}
 		token = token2;
 	}
+	//updating parent and index in the entry
 	entry->parent = parent;
 	entry->index = index;
 	return 0;
@@ -203,14 +222,26 @@ int get_empty_entry(Directory_Entry * parent) {
 	return -1;
 }
 
+//make directory function that is used for createing new directory
+
+//MAKE SURE TO KEEP MODE BEING PASSED IN, CURRENTLY NOT IN USE
 int fs_mkdir(const char *pathname, mode_t mode)
 {
+	//represents the entry that holds entry.parent and entry.name to use
+	//to create a new directory
 	parsed_entry entry;
+
+	//First Check setup for parse_directory_path return value
+	//0 Succeeds, -1 fails
 	if ( parse_directory_path(pathname, &entry) == -1) {
 		printf(" [MKDIR] invalid path\n");
 		return -1;
 	}
 
+	//Check for if is the name of the entry is an empty string OR
+	//Check for if the index of the entex is not error or -1 OR
+	//Check if the parent of the entry is not NULL and exists as 
+	//either root or another directory
 	if ( strcmp(entry.name, "") == 0  || entry.index != -1 || entry.parent == NULL){
 		free_dir(entry.parent);
 		printf("[MKDRI] error\n");
@@ -219,18 +250,27 @@ int fs_mkdir(const char *pathname, mode_t mode)
 	
 	int ret = 0;
 
+	//initialize an directory for a child needed for creation of a director, thus 
+	//making a new directory from using its parent and its name
 	Directory_Entry *child = init_directory(bytes_per_block, entry.parent, entry.name);
+
+	//gets an empty entry using entry to be able to store new infomation to
 	int index = get_empty_entry(entry.parent);
 
+	//initialze new values of entry.parent[index] with the entry infomation and child
+
+	//Directly use the entry.name passed in from the parse function
 	strncpy(entry.parent[index].dir_name, entry.name, NAME_MAX_LENGTH);
+
+	//Uses the child's 0 indexto update the infomation that is in entry.parent[index]
 	strcpy(entry.parent[index].path, child[0].path);
 	entry.parent[index].dir_file_size = child[0].dir_file_size;
 	entry.parent[index].dir_first_cluster = child[0].dir_first_cluster;
 	entry.parent[index].dir_attr = child[0].dir_attr;
 
 	// commit new data to disk
-	int block_size = bytes_per_block;
-	int blocks_need = (entry.parent[0].dir_file_size + block_size -1) / block_size;
+	int block_size = bytes_per_block; 
+	int blocks_need = (entry.parent[0].dir_file_size + block_size -1) / block_size; 
 	if ( write_to_disk(
 			entry.parent,
 			entry.parent[0].dir_first_cluster,
@@ -246,10 +286,15 @@ int fs_mkdir(const char *pathname, mode_t mode)
 
 }
 
-
+//function to remove a directory, passed in only pathname
+//use parse path, then load the child
+//after loading the child, you will then unlink 
+//so you can delete it and reset it an avaiable to use block
 int fs_rmdir(const char *pathname) {
 
 
+	//represents the entry that holds entry.parent and entry.name that
+	//wants to be removed
 	parsed_entry entry;
 	if (parse_directory_path(strdup(pathname), &entry) == -1) {
 		printf("[RMDIR] invalid path\n");
@@ -257,22 +302,29 @@ int fs_rmdir(const char *pathname) {
 		return -1;
 	}
 
+	//Checks if the dir that you are trying to delete exists in the file system
 	if (entry.index == -1 || entry.parent == NULL) {
 		printf("[RMDIR] dir not exist\n");
 		free_dir(entry.parent);
 		return -1;
 	}
+
+	//returns -1 if you are trying to remove a file from calling
+	//rmdir which should only remove a directory
 	if (fs_isFile(strdup(pathname))) {
 		free_dir(entry.parent);
 		printf("[RMDIR] file\n");
 		return -1;
 	}
+
 	if (strcmp(entry.name, "") == 0 || strcmp(entry.name, "/") == 0) {
 		printf("[RMDIR] get lost\n");
 		free_dir(entry.parent);
 		return -1;
 	}
 
+	//can't delete the directory if the directory is not completely empty
+	//we need to use an logical and to check the attr and DIRTY_Dir 
 	if (entry.parent[entry.index].dir_attr & DIRTY_DIR) {
 		printf("[RMDIR] not empty dir\n");
 		free_dir(entry.parent);
@@ -322,13 +374,13 @@ int fs_rmdir(const char *pathname) {
 }
 
 
-
-
-
 // Function to check if the given filename corresponds to a regular file
 int fs_isFile(char *filename)
 {
+	//Check to see if the filename is a directory
 	int ret = fs_isDir(filename);
+
+	//Takes the opposite, which means if it is not a directory, it is a path
 	if (ret == -1) return ret;
 	return !ret;
 }
@@ -336,42 +388,54 @@ int fs_isFile(char *filename)
 // Function to check if the given pathname corresponds to a directory or not
 int fs_isDir(char *pathname)
 {
+	//represents the entry that holds entry.parent and entry.name to use
+	//to get the entry.parent[index]
 	parsed_entry entry;
 	if ( parse_directory_path(pathname, &entry) == -1) {
 		printf("[IS DIR] invalid path\n");
 		return -1;
 	}
 
+	//Checks to see if the entry that is gotten through parse path 
+	//exists as a directory
 	if (entry.index == -1 || entry.parent == NULL) {
 		printf("[IS DIR] %s does not exist\n", entry.name);
 		free_dir(entry.parent);
 		return -1;
 	}
 
+	//runs a is_dir using entry.parent[entry.index] and
+	//returns entry.dir_attr & IS_DIR
+	//using attr to check if it is a directory or not
 	int ret = is_dir(entry.parent[entry.index]);
+
+	//free entry after use, because it is simply used check
 	free_dir(entry.parent);
 	return ret;
  
 }
 
 
-
-
-
+// Function to ccreate a new file and return sucess or not
 int fs_mkfile(char *filename) {
 
+	//represents the entry that holds entry.parent and entry.name to use
+	//to create the new file
 	parsed_entry entry;
 	if (parse_directory_path(strdup(filename), &entry) == -1) {
 		printf("[MKFILE] invalid path\n");
 		return -1;
 	}
 
+	//Checking to see if something is inputtted as a name for
+	//the new file
 	if (strcmp(entry.name, "") == 0) {
 		printf("[MKFILE] name ?\n");
 		free_dir(entry.parent);
 		return -1;
 	}
 
+	//Checks to see if entry already exists 
 	if (entry.index != -1 || entry.parent == NULL) {
 		printf("[MKFILE] %s already exists\n", entry.name);
 		free_dir(entry.parent);
@@ -401,40 +465,40 @@ int fs_mkfile(char *filename) {
 	return 0;
 }
 
-
+//Function that is used to move a file (only a file not a directory) to another directory
+//Don't need to move a file to another file
+//Don't need to move a file to an directory that doesnt exists
 int fs_mvFile(char *filename, char *pathname) {
 
-	printf("Seg fault 1 comes right after this\n");
-
+	//the src needs to be a directory
 	if ( fs_isDir(filename) == 1) {
 		return -1;
 	}
 
-	printf("Seg fault 2 comes right after this\n");
-
+	
+	//represents the entry that holds entry.parent and entry.name the source 
+	//(file) that is being moved to the destination (directory)
 	parsed_entry source;
 	if ( parse_directory_path (filename, &source) == -1) {
 		printf("[MVFILE] invalid path\n");
 		return -1;
 	}
 
-	printf("Seg fault 3 comes right after this\n");
-
+	//Checks to see if the source that is being passed exists in the directory
 	if ( source.index == -1 || source.parent == NULL) {
 		printf("[MVILFE] %s does not exist\n", source.name);
 		free_dir(source.parent);
 		return -1;
 	}
 
-	printf("Seg fault 4 comes right after this\n");
-
+	//Checks to see if the source (file) is actually a file, can't move a directory
 	if (fs_isFile(pathname) == 1) {
 		printf(" [MVILFE] a file\n");
 		return -1;
 	}
 
-	printf("Seg fault 5 comes right after this\n");
-
+	//represents the entry that holds entry.parent and entry.name for the destination 
+	//(directory) that the source (file) is being moved to
 	parsed_entry destination;
 	if (parse_directory_path(pathname, &destination) == -1) {
 		printf("[MVFILE] invalid path\n");
@@ -442,15 +506,12 @@ int fs_mvFile(char *filename, char *pathname) {
 		return -1;
 	}
 
-	printf("Seg fault 6 comes right after this\n");
-
+	//Checks to see if the destination (directory) that is being passed exists in the file system
 	if (destination.index == -1 || destination.parent == NULL) {
 		free_dir(destination.parent);
 		printf("[MFILE] dir does not exists\n");
 		return -1;
 	}
-
-	printf("Seg fault 7 comes right after this\n");
 
 	Directory_Entry * dest_dir = get_target_directory(destination.parent[destination.index]);
 	printf("dedst_dir path %s \n",dest_dir[0].path );
@@ -462,15 +523,10 @@ int fs_mvFile(char *filename, char *pathname) {
 		free_dir(dest_dir);
 	}
 
-	printf("Seg fault 8 comes right after this");
 
 	int index = get_empty_entry(dest_dir);
-
-	printf("index is %d\n", index);
 	int block_size = bytes_per_block;
-	printf("index is %d\n", block_size);
 	int blocks_need = (dest_dir[0].dir_file_size + block_size - 1) / block_size;
-	printf("index is %d\n", blocks_need);
 
 	// start the moving process
 	strcpy(dest_dir[index].dir_name, source.name);
@@ -493,36 +549,16 @@ int fs_mvFile(char *filename, char *pathname) {
 
 }
 
-int fs_mvDir(char *filename, char *pathname) {
-
-	if ( fs_isDir(filename) == 1) {
-		return -1;
-	}
-
-	parsed_entry source;
-	if ( parse_directory_path (filename, &source) == -1) {
-		printf("[MVFILE] invalid path\n");
-		return -1;
-	}
-
-
-	return 0;
-
-}
-
-
-
-
-
-
+//Function that deletes a file (can't delete a directory)
+//return success or failure
 int fs_delete(char *filename)
 {
 
-    // if not file do no delet
+    // checks if it is a directory, which you can't delete
     if (fs_isDir(strdup(filename)) == 1)
     {
         printf("Can't delete a directory\n");
-	return -1;
+		return -1;
     }
     
     // grab the directory entry of the file
@@ -531,6 +567,7 @@ int fs_delete(char *filename)
 	    return -1;
     }
 
+	//Needs to be a valid file that can be deleted
     if (entry.index == -1 || entry.parent == NULL){
 	free_dir(entry.parent);
         printf("not a valid file\n");
@@ -539,7 +576,6 @@ int fs_delete(char *filename)
 
     // free the blocks
     release_blocks(entry.parent[entry.index].dir_first_cluster);
-
 
     // need to clear out the metadata of the file from the directory entry;
     strcpy(entry.parent[entry.index].dir_name, "entry");
@@ -566,6 +602,46 @@ int fs_delete(char *filename)
     return 0;
 }
 
+int fs_renameDirectoryOrFile(const char *path, const *newName)
+{
+	parsed_entry entry;
+
+	//Check for if name exists as an already created file or directory
+	//Looks to see if the given path in newName is file/dir which would return 0
+	if (fs_isFile(newName) == 0 || fs_isDir(newName) == 0 ){
+			printf("[ FS RENAME ]: Name already exists.\n");
+			return -1;
+    }
+
+	//Changes print statement based on whether it is a dir or file
+	if (fs_isDir(path)){
+        printf("[ FS RENAME ]: Changing dir name of %s to %s\n", path, newName);
+    }
+	else{
+		printf("[ FS RENAME ]: Changing file name of %s to %s\n", path, newName);
+	}
+
+	//Parses through path to build the path and send it over to entry struct
+    if ( parse_directory_path(path, &entry) == -1) {
+		printf("[ FS RENAME ]: Invalid path.\n");
+        free_dir(entry.parent);
+		return -1;
+	}
+
+	//Need to get the current Directory entry that you are changing the name for
+	//Entry struct containers the parent with with the correct index from running
+	//the parse_directory_path function
+    Directory_Entry* target = get_target_directory(entry.parent[entry.index]);
+
+	//Needs to copy the user inputted name into the directory or file after correct checks
+	strcpy(entry.parent[entry.index].dir_name, newName);
+
+	//Immeditate clean of the entry after copying over
+	free_dir(entry.parent);
+    return 0;
+
+}
+
 /*
  *
  *
@@ -584,12 +660,15 @@ fdDir *fs_opendir(const char *pathname)
         return NULL;
     }
     
+	//represents the entry that holds entry.parent and entry.name that is being 
+	//opened, we need this entry to get it for a child Directory entry
     parsed_entry entry;
     if (parse_directory_path(strdup(pathname), &entry) == -1) {
         printf ("invalid pathname\n");
         return NULL;
     }
 
+	//Checks if the directory actually exists thus allowing us to open it
     if (entry.index == -1 || entry.parent == NULL) {
 	    printf("[OPEN DIR] dir not exists\n");
 	    free_dir(entry.parent);
@@ -622,15 +701,24 @@ fdDir *fs_opendir(const char *pathname)
 /*
  * helper functions for readdir
  */
+
+//Function to check if the directory entry is being used
+//return value should be logical and between entry.dir_attr, IS_ACTIVE
 int is_used(Directory_Entry entry)
 {
     return entry.dir_attr & IS_ACTIVE;
 }
+
+//Function to check if the directory entry is an directory
+//return value should be logical and between entry.dir_attr, IS_DIR
 int is_dir(Directory_Entry entry)
 {
     return entry.dir_attr & IS_DIR;
 }
 
+//FUnction to read a directory and returns it as a struct
+//of directory item info which allows us to have the directory
+//infomation needed to read the directory
 struct fs_diriteminfo *fs_readdir(fdDir *dirp)
 {
     if (dirp == NULL)
@@ -653,6 +741,8 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
     return NULL;
 }
 
+//Clean up of a directory
+//Need to free dirp variables && set them to NULL
 int fs_closedir(fdDir *dirp)
 {
     if (dirp == NULL)
@@ -693,53 +783,17 @@ int fs_stat(const char *path, struct fs_stat *buf)
 	
 }
 
-
+//Clean up Function
+//frees any directory that is passed to it
 void free_dir(Directory_Entry * dir) {
+
+	//We need to keep current directory and the root directory in memory
 	if (dir != current_directory && dir != root_directory) {
 		free(dir);
 		dir == NULL;
 	}
 }
 
-int fs_renameDirectoryOrFile(const char *path, const *newName)
-{
-	parsed_entry entry;
 
-
-	//Check for if name exists as an already created file or directory
-	//Looks to see if the given path in newName is file/dir which would return 0
-	if (fs_isFile(newName) == 0 || fs_isDir(newName) == 0 ){
-			printf("[ FS RENAME ]: Name already exists.\n");
-			return -1;
-    }
-
-	//Changes print statement based on whether it is a dir or file
-	if (fs_isDir(path)){
-        printf("[ FS RENAME ]: Changing dir name of %s to %s\n", path, newName);
-    }
-	else{
-		printf("[ FS RENAME ]: Changing file name of %s to %s\n", path, newName);
-	}
-
-	//Parses through path to build the path and send it over to entry struct
-    if ( parse_directory_path(path, &entry) == -1) {
-		printf("[ FS RENAME ]: Invalid path.\n");
-        free_dir(entry.parent);
-		return -1;
-	}
-
-	//Need to get the current Directory entry that you are changing the name for
-	//Entry struct containers the parent with with the correct index from running
-	//the parse_directory_path function
-    Directory_Entry* target = get_target_directory(entry.parent[entry.index]);
-
-	//Needs to copy the user inputted name into the directory or file after correct checks
-	strcpy(entry.parent[entry.index].dir_name, newName);
-
-	//Immeditate clean of the entry after copying over
-	free_dir(entry.parent);
-    return 0;
-
-}
 
 
