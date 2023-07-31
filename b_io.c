@@ -792,16 +792,6 @@ int b_write(b_io_fd fd, char *buffer, int count) //600
 int b_read(b_io_fd fd, char *buffer, int count)
 {
 
-	// Initialize variables to calculate how much data can be filled from the buffer.
-	int part1, part2, part3;
-	int remainingBytes = B_CHUNK_SIZE - fcbArray[fd].index;
-	int blocksToCopy;
-	int bytesRead;
-	printf("[b_ioc -> b_read] count is %d\n", count);
-	printf("[b_ioc -> b_read] the file name is %s", fcbArray[fd].fi->file_name);
-	printf("[b_ioc -> b_read] the file location is %d", fcbArray[fd].fi->location);
-	// Check if the file system has been initialized.
-	// If not, call b_init() to initialize it.
 	if (startup == 0)
 		b_init(); // Initialize our system
 
@@ -816,14 +806,25 @@ int b_read(b_io_fd fd, char *buffer, int count)
 		return -1;
 	}
 
+	// Initialize variables to calculate how much data can be filled from the buffer.
+	int part1, part2, part3;
+	int remainingBytes = B_CHUNK_SIZE - fcbArray[fd].index;
+	int blocksToCopy;
+	int bytesRead;
+	printf("[b_ioc -> b_read] count is %d\n", count);
+	printf("[b_ioc -> b_read] the file name is %s\n", fcbArray[fd].fi->file_name);
+	printf("[b_ioc -> b_read] the file location is %d\n", fcbArray[fd].fi->location);
+
+
+
 	// TODO: check read flag
-	printf("[b_ioc -> b_read] file_size is %d\n", fcbArray[fd].file_size_index);
+	// printf("[b_ioc -> b_read] file_size is %d\n", fcbArray[fd].file_size_index);
 
 	// adjust count if greater than EOF
-	if (count + fcbArray[fd].file_size_index > fcbArray[fd].fi->file_size)
+	if (count + fcbArray[fd].file_size_index > fcbArray[fd].fi->de->dir_file_size)
 	{
-		printf("[b_ioc -> b_read] file_size is %d\n", fcbArray[fd].fi->file_size);
-		count = fcbArray[fd].fi->file_size - fcbArray[fd].file_size_index;
+		printf("[b_ioc -> b_read] file_size is %d\n", fcbArray[fd].fi->de->dir_file_size);
+		count = fcbArray[fd].fi->de->dir_file_size - fcbArray[fd].file_size_index;
 		printf("[b_ioc -> b_read] Had to reduce count\n");
 	}
 
@@ -832,6 +833,7 @@ int b_read(b_io_fd fd, char *buffer, int count)
 	{
 		printf("[b_ioc -> b_read] filling in from current block\n");
 		part1 = count;
+		printf("[READ] in the if %d\n", count);
 		part2 = 0;
 		part3 = 0;
 	}
@@ -852,6 +854,12 @@ int b_read(b_io_fd fd, char *buffer, int count)
 	// If there are bytes remaining in the buffer, copy them to the user's buffer.
 	if (part1 > 0)
 	{
+		//we need to read the first block
+		LBAread(fcbArray[fd].buf, 1, fcbArray[fd].current_location);
+
+
+		printf("[b_ioc -> b_read] part1 fcbarray index %d\n", fcbArray[fd].index);
+
 		printf("[b_ioc -> b_read] inside condition part 1\n");
 		// Copy part1 number of bytes from the current position in the buffer
 		// to the user's buffer, starting at the address pointed by buffer.
@@ -864,9 +872,10 @@ int b_read(b_io_fd fd, char *buffer, int count)
 		// to keep track of the current position in the file.
 		fcbArray[fd].file_size_index += part1;
 
-		// Increase the buffer length by part1,
-		// the buffer now has part1 more valid bytes.
-		fcbArray[fd].buflen += part1;
+		// // Increase the buffer length by part1,
+		// // the buffer now has part1 more valid bytes.
+		// fcbArray[fd].buflen += part1;
+
 	}
 	printf("[b_ioc -> b_read] par 1 is %d\n", part1);
 	printf("[b_ioc -> b_read] par 2 is %d\n", part2);
@@ -918,7 +927,10 @@ int b_read(b_io_fd fd, char *buffer, int count)
 		printf("[b_ioc -> b_read] inside condition part 3\n");
 		// Update the current_location to the logical block number of the next block.
 		int bytes_readP3 = 0;
+	
 		fcbArray[fd].current_location = get_next_block(fcbArray[fd].current_location);
+
+		printf("[b_ioc -> b_read] the current block part3 start %d\n", fcbArray[fd].current_location);
 
 		// Check if the end of file has been reached.
 		if (fcbArray[fd].current_location == -1)
