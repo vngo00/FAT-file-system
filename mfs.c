@@ -33,8 +33,16 @@ int get_empty_entry(Directory_Entry * parent);
 void free_dir(Directory_Entry *dir);
 int is_dir(Directory_Entry entry);
 
-// This function changes the current working directory to the specified path.
-// It allows us to navigate to a different directory within the file system.
+/**
+ * This function changes the current working directory to the specified path.
+ * It allows us to navigate to a different directory within the file system.
+ *
+ * @param path - A  char pointer representing the path given from user
+ * @param size - An size_t that represents the size
+ *
+ * @return - On success, this function returns the path of th current working directory
+ *         
+ */
 char *fs_getcwd(char *path, size_t size)
 {
 
@@ -44,7 +52,15 @@ char *fs_getcwd(char *path, size_t size)
     return path;
 }
 
-//This function sets the current working to a new directory that is passed thrugh
+/**
+ * This function sets the current working to a new directory that is passed through
+ *
+ * @param path - A char pointer representing the path given from user
+ *
+ * @return - On success of setting current working directory, return 0
+ *         - If the directory does not exist return -1
+ *         
+ */
 int fs_setcwd(char *path)
 {
 	//represents the entry that holds entry.parent and entry.name to use
@@ -103,11 +119,19 @@ int check_directory_attribute(int attribute)
 
 */
 
-// This function searches for a directory entry that matches the provided token (directory name)
-// within the given array of directory entries (current_dir_ent).
-// It iterates through each directory entry in the current directory until a match is found.
-// If a match is found, it allocates memory for a new directory entry, copies the matching entry into it,
-// and returns the new directory entry. If no match is found, it returns NULL.
+/**
+ * This function searches for a directory entry that matches the provided token (directory name)
+ * within the given array of directory entries (current_dir_ent).
+ * It iterates through each directory entry in the current directory until a match is found.
+ * If a match is found, it allocates memory for a new directory entry, copies the matching entry into it,
+ * and returns the new directory entry. If no match is found, it returns NULL.
+ *
+ * @param entry - A Directory_Entry representing the directory the function is trying to get
+ *
+ * @return - On success of getting target directory, return 0
+ *         - If the directory can't load return -1
+ *         
+ */
 Directory_Entry *get_target_directory(Directory_Entry entry)
 {
     // check if we want root or current dir
@@ -135,7 +159,16 @@ Directory_Entry *get_target_directory(Directory_Entry entry)
 }
 
 
-//
+/**
+ * This function gets the target entry
+ *
+ * @param current_dir_ent - A Directory_Entry representing the path for the current directory entry
+ * @param token - A char pointer representing the token needed to find target entry
+ *
+ * @return - On success of setting current working directory, return 0
+ *         - If the directory does not exist return -1
+ *         
+ */
 int find_target_entry(Directory_Entry *current_dir_ent, char *token)
 {
 
@@ -153,9 +186,15 @@ int find_target_entry(Directory_Entry *current_dir_ent, char *token)
     return -1;
 }
 
-
-//parse_directory_path that is used to tokenize a string that is like
-// /dirA/dirB/fileC (abosolute) or dirB (relative)
+/**
+ * This function is used to parse the given path and set the entry struct variables
+ *
+ * @param path - A char pointer representing the string that gets parsed as the path
+ * @param entry - A parsed_entry pointer representing the entry that holds the parent and name and index
+ *
+ * @return - On success of parseing through and setting correct entry values, return 0
+ *         
+ */
 int parse_directory_path(char *path, parsed_entry *entry) {
 	
 	//Checks if path has a value
@@ -164,9 +203,9 @@ int parse_directory_path(char *path, parsed_entry *entry) {
 	//Creates a start directory that represents the start point
 	Directory_Entry *start_dir;
 	// checking for starting point
-	if ( path[0] != '/') { //relative
+	if ( path[0] != '/') { //Checking if the path is the current directory
 		start_dir = current_directory;
-	} else {
+	} else { //otherwise it is the root_directory
 		start_dir = root_directory;
 	}
 
@@ -210,9 +249,13 @@ int parse_directory_path(char *path, parsed_entry *entry) {
 	return 0;
 }
 
-/*
- *help function to find empty entry
+/**
+ * This is a helper function to get a empty entry
  *
+ * @param parent - A directory_entry that represents the parent of the empty entry you are tring to get
+ *
+ * @return - On call, return index of parent where the entry is not active
+ *         
  */
 int get_empty_entry(Directory_Entry * parent) {
 	for (int i = 2; i < entries_per_dir; i++) {
@@ -222,7 +265,17 @@ int get_empty_entry(Directory_Entry * parent) {
 	return -1;
 }
 
-//make directory function that is used for createing new directory
+
+/**
+ * This function is used for creating a new directory
+ *
+ * @param pathname - A char pointer representing the string that gets parsed as the path
+ * @param entry - A parsed_entry pointer representing the entry that holds the parent and name and index
+ *
+ * @return - On success of parseing through and setting correct entry values, return 0
+ *         - On failure, return -1
+ *         
+ */
 
 //MAKE SURE TO KEEP MODE BEING PASSED IN, CURRENTLY NOT IN USE
 int fs_mkdir(const char *pathname, mode_t mode)
@@ -286,12 +339,19 @@ int fs_mkdir(const char *pathname, mode_t mode)
 
 }
 
-//function to remove a directory, passed in only pathname
-//use parse path, then load the child
-//after loading the child, you will then unlink 
-//so you can delete it and reset it an avaiable to use block
-int fs_rmdir(const char *pathname) {
+/**
+ * This function is used for removing a directory
+ *
+ * @param pathname - A char pointer representing the string that gets parsed as the path
+ *
+ * @return - On success of removing directory, return 0
+ *         - On failure directory existing, return -1
+ *         - On failure directory has stuff inside that can't be deleted, return -1
+ *         - On file being passed in, return -1
+ *         
+ */
 
+int fs_rmdir(const char *pathname) {
 
 	//represents the entry that holds entry.parent and entry.name that
 	//wants to be removed
@@ -373,8 +433,15 @@ int fs_rmdir(const char *pathname) {
 	return 0;
 }
 
-
-// Function to check if the given filename corresponds to a regular file
+/**
+ * This function is used to check if the given filename corresponds to a regular file
+ *
+ * @param filename - A char pointer representing the string that gets parsed as the path (file)
+ *
+ * @return - On success if is a file, return 1
+ *         - On failure if not a file, return 0
+ *         
+ */
 int fs_isFile(char *filename)
 {
 	//Check to see if the filename is a directory
@@ -385,7 +452,15 @@ int fs_isFile(char *filename)
 	return !ret;
 }
 
-// Function to check if the given pathname corresponds to a directory or not
+/**
+ * This Function is used to check if the given pathname corresponds to a directory or not
+ *
+ * @param pathname - A char pointer representing the string that gets parsed as the path (directory)
+ *
+ * @return - On success if is a directory, return 1
+ *         - On failure if not a directory, return 0
+ *         
+ */
 int fs_isDir(char *pathname)
 {
 	//represents the entry that holds entry.parent and entry.name to use
@@ -415,8 +490,17 @@ int fs_isDir(char *pathname)
  
 }
 
-
-// Function to ccreate a new file and return sucess or not
+/**
+ * This Function is used to create a new file and return sucess or not
+ *
+ * @param filename - A char pointer representing the filename of the new file
+ *
+ * @return - On success of creation of file, return 0
+ *         - if no name given, return -1
+ *         - if file name already exists, return -1
+ *         - if no file created, return -1
+ *         
+ */
 int fs_mkfile(char *filename) {
 
 	//represents the entry that holds entry.parent and entry.name to use
@@ -465,9 +549,20 @@ int fs_mkfile(char *filename) {
 	return 0;
 }
 
-//Function that is used to move a file (only a file not a directory) to another directory
-//Don't need to move a file to another file
-//Don't need to move a file to an directory that doesnt exists
+/**
+ * This Function is used to move a file (only a file not a directory) to another directory
+ *
+ * @param filename - A char pointer representing the filename of the file you want move (src)
+ * @param pathname - A char pointer representing the pathname of the directory you want to move to (destintation)
+ *
+ * @return - On success of moving a file, return 0
+ *         - if src is a directory, return -1
+ *         - if src doesn't exist, return -1
+ *         - if destintation is a file, return -1
+ *         - if destintation does not exist, return -1
+ *         - if failure to write to disk, return -1
+ *         
+ */
 int fs_mvFile(char *filename, char *pathname) {
 
 	//the src needs to be a directory
@@ -549,8 +644,17 @@ int fs_mvFile(char *filename, char *pathname) {
 
 }
 
-//Function that deletes a file (can't delete a directory)
-//return success or failure
+/**
+ * This Function is used to deletes a file (can't delete a directory)
+ *
+ * @param filename - A char pointer representing the filename of the file you want to delete
+ *
+ * @return - On success of deleting a file, return 0
+ *         - if it is a directory, return -1
+ *         - if not a valid file, return -1
+ *         - if failure to write to disk, return -1
+ *         
+ */
 int fs_delete(char *filename)
 {
 
@@ -602,6 +706,15 @@ int fs_delete(char *filename)
     return 0;
 }
 
+/**
+ * This Function is used to rename a file or directory
+ *
+ * @param path - A char pointer representing the path of the file/dir you want to rename
+ *
+ * @return - On success of renaming a file or directory, return 0
+ *         - if name already exists, return -1
+ *         
+ */
 int fs_renameDirectoryOrFile(const char *path, const *newName)
 {
 	parsed_entry entry;
@@ -648,9 +761,18 @@ int fs_renameDirectoryOrFile(const char *path, const *newName)
  * Directory iteration functions
  *
  */
-//
-// return directory descriptor which will keep the information
-// of a target directory
+
+/**
+ * This Function is used to open a directory
+ *
+ * @param filename - A char pointer representing the pathname of the directory you want to open
+ *
+ * @return - On success of creation of file, return 0
+ *         - if it is not a directory, return -1
+ *         - if directory doesn't exist, return -1
+ *         - if failure to bring to memory, return -1
+ *         
+ */
 fdDir *fs_opendir(const char *pathname)
 {
     // check if pathname is a directory or a file
@@ -702,23 +824,43 @@ fdDir *fs_opendir(const char *pathname)
  * helper functions for readdir
  */
 
-//Function to check if the directory entry is being used
-//return value should be logical and between entry.dir_attr, IS_ACTIVE
+/**
+ * This Function is check if directory entry is used
+ *
+ * @param entry - A directory entry representing the entry that you want to check if used
+ *
+ * @return - If used, return 
+ *         - if not used, return
+ *         
+ */
 int is_used(Directory_Entry entry)
 {
     return entry.dir_attr & IS_ACTIVE;
 }
 
-//Function to check if the directory entry is an directory
-//return value should be logical and between entry.dir_attr, IS_DIR
+/**
+ * This Function is check if the directory entry is an directory
+ *
+ * @param entry - A directory entry representing the entry that you want to check if is a directory
+ *
+ * @return - If is a directory, return 
+ *         - if is not a directory, return
+ *         
+ */
 int is_dir(Directory_Entry entry)
 {
     return entry.dir_attr & IS_DIR;
 }
 
-//FUnction to read a directory and returns it as a struct
-//of directory item info which allows us to have the directory
-//infomation needed to read the directory
+/**
+ * This Function is used to read a directory and returns it as a struct to get it item info
+ *
+ * @param dirp - A fdDir pointer representing the directory that you want to read
+ *
+ * @return - return dirp->di
+ *         - return NULL
+ *         
+ */
 struct fs_diriteminfo *fs_readdir(fdDir *dirp)
 {
     if (dirp == NULL)
@@ -741,8 +883,15 @@ struct fs_diriteminfo *fs_readdir(fdDir *dirp)
     return NULL;
 }
 
-//Clean up of a directory
-//Need to free dirp variables && set them to NULL
+/**
+ * This Function is used to Clean up of a directory
+ *
+ * @param dirp - A fdDir pointer representing the directory that you want to close
+ *
+ * @return - return 0 on sucess
+ *         - return -1 if NULL
+ *         
+ */
 int fs_closedir(fdDir *dirp)
 {
     if (dirp == NULL)
@@ -758,6 +907,16 @@ int fs_closedir(fdDir *dirp)
     return 0;
 }
 
+/**
+ * This Function is used to update buf sizes
+ *
+ * @param path - A char pointer of the path we want to use to update
+ * @param buf - A struct fs_stat representing the buffer we want to update
+ *
+ * @return - if sucess return 0
+ *         - if entry does not exist, return -1
+ *         
+ */
 int fs_stat(const char *path, struct fs_stat *buf)
 {
 	parsed_entry entry;
@@ -783,8 +942,14 @@ int fs_stat(const char *path, struct fs_stat *buf)
 	
 }
 
-//Clean up Function
-//frees any directory that is passed to it
+/**
+ * This Function is used to clean up a directory
+ *
+ * @param path - A directory entry pointer dir that we want to free
+ *
+ * @return - void (nothing)
+ *         
+ */
 void free_dir(Directory_Entry * dir) {
 
 	//We need to keep current directory and the root directory in memory

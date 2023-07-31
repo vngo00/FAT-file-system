@@ -24,12 +24,12 @@
 #include "b_io.h"
 #include "mfs.h"
 #include "FAT.h"
+
 // Maximum number of file descriptors that can be open at the same time in the system.
 #define MAXFCBS 20
 
 // Size of the chunks that the system will use to read from or write to the files.
 #define B_CHUNK_SIZE 512
-
 
 // Global variable.
 extern int bytes_per_block;
@@ -43,7 +43,7 @@ typedef struct file_info
 	int file_size;					 // file size in bytes
 	int location;					 // starting logical block in disk
 	int blocks;						 // total blocks of file in disk
-	Directory_Entry *de;			// Testing....................................
+	Directory_Entry *de;			 // used for correctly updating directory infomation
 } file_info;
 
 /**
