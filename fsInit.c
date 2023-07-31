@@ -29,6 +29,15 @@ int bytes_per_block;
 
 extern Directory_Entry *root_directory;
 
+/**
+ * This Function is used to initalize the file system
+ *
+ * @param number_of_blocks - The number of blocks in the file system
+ * @param block_size - THe block size of each block in the file system
+ *
+ * @return - the next block in the chain from the fat array
+ *         
+ */
 int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
     printf("Initializing File System with %ld blocks with a block size of %ld\n", number_of_blocks, block_size);
    bytes_per_block = block_size;
@@ -36,6 +45,7 @@ int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
 
     int vcb_check = 0;
 
+    //VCB not initalized at start, so you try to initalize
     if (!vcb_is_init()) {
         printf("[ FS INIT ] : VCB not initialized. Attempting initialization...\n");
 
@@ -55,7 +65,7 @@ int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
             printf("[ FS INIT ] : Failed to initialize root directory.\n");
 
         }
-    } else {
+    } else { //otherwise vcb already intialized so start without initalizing it
         printf("[ FS INIT ] : VCB already initialized. Loading from disk...\n");
 
         vcb_check = vcb_read_from_disk(vcb);
@@ -79,6 +89,13 @@ int initFileSystem(uint64_t number_of_blocks, uint64_t block_size) {
     return 0;
 }
 
+/**
+ * This Function is used to exit the file system
+ *
+ *
+ * @return - void
+ *         
+ */
 void exitFileSystem() {
     printf("System exiting\n");
 
