@@ -365,37 +365,18 @@ int b_write(b_io_fd fd, char *buffer, int count) //600
         return -1; // Invalid file descriptor
     }
 
-	//count
-	//fcbArray[fd].index //BUFFER POSITION
-	//fcbArray[fd].file_size_index  NOT NEEDED
-	//fcbArray[fd].fi->de->dir_file_size FILE POSITION
-	//bytes_written //into the file 
-	//uint32_t initial_block = fcbArray[fd].current_location //starting block
-	//uint32_t next_block = get_next_block(fcbArray[fd].current_location); //next block
-	//Buffer size = their buffer size;  -> fcbArray[fd].buflen = count; //keeps our buffer and their the buffer same
-	//edge case to keep track of buflen.. 
-
-	//fcbArray[fd].buf + fcbArray[fd].index //always reset to 0 in b_open
-	//buffer starts empty and ends empty
-
 	//gives us the current position in the file
 	fcbArray[fd].index = fcbArray[fd].fi->de->dir_file_size % B_CHUNK_SIZE;
 
-	int remainingBytesInBuffer = B_CHUNK_SIZE - fcbArray[fd].index;
+	int remainingBytesInBuffer = B_CHUNK_SIZE - fcbArray[fd].index; //remaining bytes from index of fd
 	int part1,part2,part3;
-	int blocksToCopy;
+	int blocksToCopy; //blocks to copy for part2
 	int userBufferPosition = 0; //current positon of the user buffer that we need to start memcpy from 
-
-	//
-
-	//memcpy(fcbArray[fd].buf, buffer, count);
 
 	//first block -> count < remaining bytes in buffer
 	if(count <= remainingBytesInBuffer) {
 
 		printf("[WRITE] goes into first if \n");
-
-		//printf("[WRITE] count <= remainingBytesInBuffer triggered \n");
 
 		//whats written to current block because it fits inside
 		part1 = count;
@@ -408,17 +389,15 @@ int b_write(b_io_fd fd, char *buffer, int count) //600
 
 		printf("[WRITE] goes into first else \n");
 
-		part1 = remainingBytesInBuffer; //512 - 0 = 512
+		part1 = remainingBytesInBuffer; //should hold a full block
 
-		part3 = count - remainingBytesInBuffer; //1200 - 512 = 688
+		part3 = count - remainingBytesInBuffer; //how much more after a full block
 
-		blocksToCopy = part3 / B_CHUNK_SIZE; // 688 / 512 -> 1 more block, but stills has remainder
+		blocksToCopy = part3 / B_CHUNK_SIZE; // Checks how many blocks you need for part 2
 
-		part2 = blocksToCopy * B_CHUNK_SIZE; //1 * 512 = 512
+		part2 = blocksToCopy * B_CHUNK_SIZE; //convert blocks to amount of bytes you need per block
 
-		//88 - 512 = -424 if negative its fine 
-		//for part 3 to start, part3 has to be positive
-		part3 = part3 - part2; //688 - 512 = 176
+		part3 = part3 - part2; //if negative part3 won't go 
 	}
 
 	if(part1 > 0){
@@ -458,13 +437,9 @@ int b_write(b_io_fd fd, char *buffer, int count) //600
 	//if there is a remainder
 	if(part2 > 0){
 
-		//we know that we need to write atleast 2 blocks
-
-		//blocksToCopy = 2
-		//part2 = 1024
-
 		printf("[WRITE] goes into part2 \n");
 
+		//loops through each block you need to copy and write
 		for(int i = 0; i < blocksToCopy; i++){
 
 			//now we need to update where we write to becuase we just wrote
@@ -494,9 +469,7 @@ int b_write(b_io_fd fd, char *buffer, int count) //600
 
 			//because we have memcpy the part1 of the buffer
 			userBufferPosition += B_CHUNK_SIZE;
-
 		}
-
 	}
 
 	//if there is remainder bytes that fits into one block
@@ -505,35 +478,29 @@ int b_write(b_io_fd fd, char *buffer, int count) //600
 
 		//grab block
 
-		//now we need to update where we write to becuase we just wrote
-			uint32_t next_block = get_next_block(fcbArray[fd].current_location);
+		//now we need to update where we write to becuase we just wrote in either part1 or part2
+		uint32_t next_block = get_next_block(fcbArray[fd].current_location);
 
-			//If there is no next block, we need to allocate a new block
-			if (next_block == EOF_BLOCK)
-			{
-				// Allocate 1 additional block
-				allocate_additional_blocks(fcbArray[fd].current_location, 1);
+		//If there is no next block, we need to allocate a new block
+		if (next_block == EOF_BLOCK)
+		{
+			// Allocate 1 additional block
+			allocate_additional_blocks(fcbArray[fd].current_location, 1);
 
-				// Get the updated next block from FAT
-				next_block = get_next_block(fcbArray[fd].current_location);
-			}
+			// Get the updated next block from FAT
+			next_block = get_next_block(fcbArray[fd].current_location);
+		}
 
-			//Update the current_location to the next block
-			fcbArray[fd].current_location = next_block;
+		//Update the current_location to the next block
+		fcbArray[fd].current_location = next_block;
 
+		//We need to read whats currently in the buffer so we can make sure to get everything in the block
 		LBAread(fcbArray[fd].buf, 1,fcbArray[fd].current_location);
 
+		//bring it into to memory to then do a write
 		memcpy(fcbArray[fd].buf, buffer + userBufferPosition, part3); 
 
 		printf("[WRITE] buffer  part3 %s\n", fcbArray[fd].buf);
-
-		//printf("[WRITE] file writes this  %s\n", userBufferPosition);
-		
-		// //write function for one block at a time
-		// if (LBAwrite(buffer + userBufferPosition, 1, fcbArray[fd].current_location) == 0) {	
-		// 	printf("[WRITE] failed at part3 \n");	
-		// 	return -1;
-		// }
 
 		//write function for one block at a time
 		if (LBAwrite(fcbArray[fd].buf, 1, fcbArray[fd].current_location) == 0) {	
@@ -548,12 +515,14 @@ int b_write(b_io_fd fd, char *buffer, int count) //600
 		userBufferPosition += part3;
 	}
 
+	//return value gets set to all parts to see how much you wrote
 	int retValue = part1 + part2 + part3;
 	printf("[WRITE retValue] checking part1 %d\n", part1);
 	printf("[WRITE retValue] checking part2 %d\n", part2);
 	printf("[WRITE retValue] checking part3 %d\n", part3);
 	printf("[WRITE] checking userBufferPosition %d\n", userBufferPosition);
 
+	//error checking if you wrote as much as you gone through their buffer
 	if(userBufferPosition != retValue) {
 		printf("[WRITE error] checking part1+part2+part3 %d\n", retValue);
 		//printf("[WRITE error] checking userBufferPosition %d\n", userBufferPosition);
@@ -616,14 +585,12 @@ int b_read(b_io_fd fd, char *buffer, int count)
 
 	// Initialize variables to calculate how much data can be filled from the buffer.
 	int part1, part2, part3;
-	int remainingBytes = B_CHUNK_SIZE - fcbArray[fd].index;
-	int blocksToCopy;
-	int bytesRead;
+	int remainingBytes = B_CHUNK_SIZE - fcbArray[fd].index; //remaining bytes from index of fd
+	int blocksToCopy; //amount of blocks to copy used in part 2
+	int bytesRead; //bytes read calculated from amount of blocks read in struct
 	printf("[b_ioc -> b_read] count is %d\n", count);
 	printf("[b_ioc -> b_read] the file name is %s\n", fcbArray[fd].fi->file_name);
 	printf("[b_ioc -> b_read] the file location is %d\n", fcbArray[fd].fi->location);
-
-
 
 	// TODO: check read flag
 	// printf("[b_ioc -> b_read] file_size is %d\n", fcbArray[fd].file_size_index);
@@ -632,6 +599,7 @@ int b_read(b_io_fd fd, char *buffer, int count)
 	if (count + fcbArray[fd].file_size_index > fcbArray[fd].fi->de->dir_file_size)
 	{
 		printf("[b_ioc -> b_read] file_size is %d\n", fcbArray[fd].fi->de->dir_file_size);
+		//update count with the filesize with index to get much you need to read
 		count = fcbArray[fd].fi->de->dir_file_size - fcbArray[fd].file_size_index;
 		printf("[b_ioc -> b_read] Had to reduce count\n");
 	}
@@ -640,6 +608,7 @@ int b_read(b_io_fd fd, char *buffer, int count)
 	if (remainingBytes >= count)
 	{
 		printf("[b_ioc -> b_read] filling in from current block\n");
+		//if you can use the amount of remaining of bytes for the given count
 		part1 = count;
 		printf("[READ] in the if %d\n", count);
 		part2 = 0;
