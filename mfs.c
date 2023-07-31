@@ -46,7 +46,7 @@ int is_dir(Directory_Entry entry);
 char *fs_getcwd(char *path, size_t size)
 {
 
-	//Uses the current_directory[0].path which is the full path for the cwd
+	// Uses the current_directory[0].path which is the full path for the cwd
     strncpy(path, current_directory[0].path, size);
 
     return path;
@@ -109,15 +109,6 @@ int fs_setcwd(char *path)
     return 0;
 }
 
-/*
-// This helper function checks whether the given attribute represents a directory.
-// It returns 1 if the attribute indicates a directory, and 0 otherwise.
-int check_directory_attribute(int attribute)
-{
-    return ((attribute >> 4) & 1);
-}
-
-*/
 
 /**
  * This function searches for a directory entry that matches the provided token (directory name)
@@ -174,15 +165,14 @@ int find_target_entry(Directory_Entry *current_dir_ent, char *token)
 
     for (int i = 0; i < entries_per_dir; i++)
     {
-        //printf("[ ind_target_dir] : Checking entry number: %d, name: %s, attribute: %d\n", i, current_dir_ent[i].dir_name, current_dir_ent[i].dir_attr);
-
+    
         if (strcmp(current_dir_ent[i].dir_name, token) == 0)
         {
-            //printf("[ ind_target_dir ] : Found matching directory entry at index: %d\n", i);
+            // Found matching directory entry at index i);
             return i;
         }
     }
-    //printf("[ ind_target_dir ] : No matching directory entry found. Returning NULL.\n");
+    // No matching directory entry found. Returning NULL.\n");
     return -1;
 }
 
@@ -276,8 +266,6 @@ int get_empty_entry(Directory_Entry * parent) {
  *         - On failure, return -1
  *         
  */
-
-//MAKE SURE TO KEEP MODE BEING PASSED IN, CURRENTLY NOT IN USE
 int fs_mkdir(const char *pathname, mode_t mode)
 {
 	//represents the entry that holds entry.parent and entry.name to use
