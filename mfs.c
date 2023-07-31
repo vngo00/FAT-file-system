@@ -404,9 +404,13 @@ int fs_mkfile(char *filename) {
 
 int fs_mvFile(char *filename, char *pathname) {
 
+	printf("Seg fault 1 comes right after this\n");
+
 	if ( fs_isDir(filename) == 1) {
 		return -1;
 	}
+
+	printf("Seg fault 2 comes right after this\n");
 
 	parsed_entry source;
 	if ( parse_directory_path (filename, &source) == -1) {
@@ -414,16 +418,22 @@ int fs_mvFile(char *filename, char *pathname) {
 		return -1;
 	}
 
+	printf("Seg fault 3 comes right after this\n");
+
 	if ( source.index == -1 || source.parent == NULL) {
 		printf("[MVILFE] %s does not exist\n", source.name);
 		free_dir(source.parent);
 		return -1;
 	}
 
+	printf("Seg fault 4 comes right after this\n");
+
 	if (fs_isFile(pathname) == 1) {
 		printf(" [MVILFE] a file\n");
 		return -1;
 	}
+
+	printf("Seg fault 5 comes right after this\n");
 
 	parsed_entry destination;
 	if (parse_directory_path(pathname, &destination) == -1) {
@@ -432,23 +442,35 @@ int fs_mvFile(char *filename, char *pathname) {
 		return -1;
 	}
 
+	printf("Seg fault 6 comes right after this\n");
+
 	if (destination.index == -1 || destination.parent == NULL) {
 		free_dir(destination.parent);
 		printf("[MFILE] dir does not exists\n");
 		return -1;
 	}
 
+	printf("Seg fault 7 comes right after this\n");
+
 	Directory_Entry * dest_dir = get_target_directory(destination.parent[destination.index]);
-	if ( strcmp(dest_dir[0].path, source.parent[0].path == 0) ) { // same dir
+	printf("dedst_dir path %s \n",dest_dir[0].path );
+	printf("dedst_dir path %s \n",source.parent[0].path);
+	if ( strcmp(dest_dir[0].path, source.parent[0].path) == 0) { // same dir
 		printf("[MVFILE] same dir\n");
 		free_dir(source.parent);
 		free_dir(destination.parent);
 		free_dir(dest_dir);
 	}
 
+	printf("Seg fault 8 comes right after this");
+
 	int index = get_empty_entry(dest_dir);
+
+	printf("index is %d\n", index);
 	int block_size = bytes_per_block;
+	printf("index is %d\n", block_size);
 	int blocks_need = (dest_dir[0].dir_file_size + block_size - 1) / block_size;
+	printf("index is %d\n", blocks_need);
 
 	// start the moving process
 	strcpy(dest_dir[index].dir_name, source.name);
@@ -465,6 +487,23 @@ int fs_mvFile(char *filename, char *pathname) {
 	}
 
 	free_dir(dest_dir);
+
+
+	return 0;
+
+}
+
+int fs_mvDir(char *filename, char *pathname) {
+
+	if ( fs_isDir(filename) == 1) {
+		return -1;
+	}
+
+	parsed_entry source;
+	if ( parse_directory_path (filename, &source) == -1) {
+		printf("[MVFILE] invalid path\n");
+		return -1;
+	}
 
 
 	return 0;
@@ -665,6 +704,7 @@ void free_dir(Directory_Entry * dir) {
 int fs_renameDirectoryOrFile(const char *path, const *newName)
 {
 	parsed_entry entry;
+
 
 	//Check for if name exists as an already created file or directory
 	//Looks to see if the given path in newName is file/dir which would return 0

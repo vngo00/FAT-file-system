@@ -41,7 +41,7 @@
 /****   SET THESE TO 1 WHEN READY TO TEST THAT COMMAND ****/
 #define CMDLS_ON	1
 #define CMDCP_ON	1
-#define CMDMV_ON	0
+#define CMDMV_ON	1
 #define CMDMD_ON	1
 #define CMDRM_ON	1
 #define CMDCP2L_ON	1
@@ -371,21 +371,37 @@ int cmd_mv (int argcnt, char *argvec[])
 		return -1;
 	}
 
+	printf("does it go in move\n");
+
 	int source_type = fs_isFile(argvec[1]);
 	int dest_type = fs_isFile(argvec[2]);
 
-	//Testing Function Only
 	//fs_renameDirectoryOrFile(argvec[1], argvec[2]);
 
+	printf("src file name %s\n", argvec[1]);
+	printf("src file type %d\n", source_type);
+
+	printf("src file name %s\n", argvec[2]);
+	printf("src file type %d\n", dest_type);
+	
+
 	if (source_type == 1 && dest_type == 0) {
-        // Move a file
-        return fs_mvFile(argvec[1], argvec[2]);
+        // Move a file into a directory
+		printf("[mv] moved a file to dir\n");
+		fs_mvFile(argvec[1], argvec[2]); 
+		fs_delete(argvec[1]);
     } else if (source_type == 1 && dest_type == 1) {
         // Rename a file
-        return fs_renameFile(argvec[1], argvec[2]);
-    } else if (source_type == 2 && dest_type == 2) {
-        // Move or Rename a directory
-        return fs_mvDir(argvec[1], argvec[2]);
+		printf("[Error] You can't move a file into a file\n");
+        return -1;
+    } else if (source_type == 0 && dest_type == 1) {
+        // Rename a file
+		printf("[Error] You can't move a directory into a file\n");
+        return -1;
+    } else if (source_type == 0 && dest_type == 0) {
+        // Move a directory into another directory
+		printf("[Error] In our file system you can't move a directory to another directory \n");
+        return -1;
     }
 
 #endif
