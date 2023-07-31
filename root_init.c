@@ -28,7 +28,12 @@ Directory_Entry *root_directory = NULL;
 char * cwd = NULL;
 Directory_Entry *current_directory = NULL;
 
-
+/**
+ * The function loads the root directory
+ *
+ * @return - On success, this function returns a 0
+ * 		   - If failure on loading root return -1
+ */
 int load_root(){
     int min_bytes_needed = vcb->entries_per_dir * sizeof(Directory_Entry);
     int blocks_need = (min_bytes_needed + vcb->bytes_per_block -1) / vcb->bytes_per_block;
@@ -56,6 +61,13 @@ int load_root(){
     return 0;
 }
 
+/**
+ * The function initalizes a directory
+ *
+ * @return - On success return the directory initalized
+ * 		   - If failure to write to disk return NULL
+ * 		   - If path length exceeds limit return NULL
+ */
 Directory_Entry * init_directory(uint64_t block_size, Directory_Entry *parent, char *name) {
  	int min_bytes_needed = vcb->entries_per_dir * sizeof(Directory_Entry);
 	int blocks_need = (min_bytes_needed + block_size -1) / block_size;
