@@ -24,10 +24,21 @@
 #include "root_init.h"
 
 
-VCB* vcb = NULL;
-int entries_per_dir = 128;
+VCB* vcb = NULL; //before setup, set to NULL
+int entries_per_dir = 128; //number of entries per each directory
 
-
+/**
+ * This function is used for initalizing the volume control block
+ *
+ * @param number_of_blocks - A uint32_t representing the number of blocks needed for the VCB
+ * @param block_size - A uint32_t representing the block size for each of the blocks needed for the VCB
+ *
+ * @return - On success of initalizng the volume control block return 0
+ *         - On failure to allocate memory, return -1
+ *         - On failure to read VCB from disk, return -1
+ *         - On failure to write VCB to disk, return -1
+ *         
+ */
 int vcb_init(uint32_t number_of_blocks, uint16_t block_size) {
     printf("[ VCB INIT ] : Initializing Volume Control Block...\n");
 
@@ -65,6 +76,15 @@ int vcb_init(uint32_t number_of_blocks, uint16_t block_size) {
     return 0;
 }
 
+/**
+ * This helper function is used for reading vcb from disk
+ *
+ * @param vcb - A vcb representing which vcb you want to read
+ *
+ * @return - On success of reading the volume control block from disk return 0
+ *         - On failure to read VCB from disk, return -1
+ *         
+ */
 int vcb_read_from_disk(VCB *vcb) {
     printf("[ VCB READ FROM DISK ] : Reading VCB from disk...\n");
 
@@ -77,6 +97,13 @@ int vcb_read_from_disk(VCB *vcb) {
     return 0;
 }
 
+/**
+ * This helper function is used to check if the vcb is initalized
+ *
+ * @return - If vcb is initalized return 0
+ *         - If Volume control block is not initalized return -1
+ *         
+ */
 int vcb_is_init() {
     printf("[ VCB IS INIT ] : Checking if VCB is initialized...\n");
     

@@ -145,7 +145,6 @@ Directory_Entry * init_directory(uint64_t block_size, Directory_Entry *parent, c
 
 }
 
-
 int read_from_disk(void * buffer, int start_block, int blocks_need, int block_size){
 	int count_block = 0;
 	int offset = 0;
@@ -160,7 +159,6 @@ int read_from_disk(void * buffer, int start_block, int blocks_need, int block_si
 		count_block++;
 		offset += block_size;
 	}
-
 	return 0;
 }
 int write_to_disk(void * buffer, int start_block, int blocks_need, int block_size){
